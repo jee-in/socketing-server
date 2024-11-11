@@ -6,6 +6,8 @@ async function bootstrap() {
 
   app.setGlobalPrefix('/api');
 
+  app.enableShutdownHooks(['SIGINT', 'SIGTERM']);
+
   await app.listen(process.env.PORT);
 
   if (process.send) {
