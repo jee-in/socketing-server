@@ -10,6 +10,7 @@ import { LoginDto } from './dto/login.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import * as crypto from 'node:crypto';
+import { CommonResponse } from 'src/common/dto/common-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto): Promise<CommonResponse<any>> {
     const { nickname, email, password, confirmPassword } = registerDto;
 
     if (password !== confirmPassword) {
@@ -66,7 +67,7 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<CommonResponse<any>> {
     const { email, password } = loginDto;
 
     const user = await this.userRepository.findOne({ where: { email } });
