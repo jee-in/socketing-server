@@ -5,10 +5,11 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     HealthModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module';
       synchronize: true,
     }),
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
