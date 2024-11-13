@@ -24,4 +24,9 @@ export const ERROR_CODES = {
     message: 'Validation failed',
     httpStatus: 400,
   },
+  INTERNAL_SERVER_ERROR: {
+    code: 6,
+    message: 'Internal server error',
+    httpStatus: 500,
+  },
 };

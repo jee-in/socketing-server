@@ -36,7 +36,7 @@ export class AuthController {
         message: 'Success',
         data: {
           id: '33f01179-9d75-4062-9012-591b54a25f64',
-          nickname: 'JohnDoe',
+          nickname: '우아한하늘빛양치기',
           email: 'johndoe@example.com',
           createdAt: '2024-11-12T12:00:00Z',
           updatedAt: '2024-11-12T12:00:00Z',
@@ -57,6 +57,26 @@ export class AuthController {
             message: 'email must be an email',
           },
         ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User already exists',
+    schema: {
+      example: {
+        code: 1,
+        message: 'User already exists',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
       },
     },
   })
@@ -91,6 +111,16 @@ export class AuthController {
       example: {
         code: 2,
         message: 'Invalid credentials',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
       },
     },
   })
