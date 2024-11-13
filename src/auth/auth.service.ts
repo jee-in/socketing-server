@@ -11,6 +11,7 @@ import { ERROR_CODES } from 'src/contants/error-codes';
 import { CustomException } from 'src/exceptions/custom-exception';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { generateRandomNickname } from './nickname-generator';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +23,7 @@ export class AuthService {
   async register(
     registerDto: RegisterRequestDto,
   ): Promise<CommonResponse<RegisterResponseDto>> {
-    const { nickname, email, password, confirmPassword } = registerDto;
+    const { email, password, confirmPassword } = registerDto;
 
     if (password !== confirmPassword) {
       const error = ERROR_CODES.PASSWORDS_DO_NOT_MATCH;
@@ -37,27 +38,45 @@ export class AuthService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    const existingNickname = await this.userRepository.findOne({
-      where: { nickname },
-    });
-    if (existingNickname) {
-      const error = ERROR_CODES.NICKNAME_ALREADY_EXISTS;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
+    let uniqueNickname = generateRandomNickname();
+    let suffix = 1;
+    let savedUser;
 
-    const salt = crypto.randomBytes(16).toString('hex');
+    await this.userRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        while (true) {
+          const existingNickname = await transactionalEntityManager.findOne(
+            User,
+            {
+              where: { nickname: uniqueNickname },
+              lock: { mode: 'pessimistic_write' },
+            },
+          );
 
-    const hashedPassword = crypto
-      .pbkdf2Sync(registerDto.password, salt, 1000, 64, 'sha256')
-      .toString('hex');
+          if (!existingNickname) {
+            break;
+          }
 
-    const newUser = this.userRepository.create({
-      ...registerDto,
-      salt,
-      password: hashedPassword,
-    });
+          suffix++;
+          uniqueNickname = `${uniqueNickname}${suffix}`;
+        }
 
-    const savedUser = await this.userRepository.save(newUser);
+        const salt = crypto.randomBytes(16).toString('hex');
+
+        const hashedPassword = crypto
+          .pbkdf2Sync(registerDto.password, salt, 1000, 64, 'sha256')
+          .toString('hex');
+
+        const newUser = this.userRepository.create({
+          ...registerDto,
+          nickname: uniqueNickname,
+          salt,
+          password: hashedPassword,
+        });
+
+        savedUser = await transactionalEntityManager.save(newUser);
+      },
+    );
 
     return new CommonResponse<RegisterResponseDto>({
       id: savedUser.id,
