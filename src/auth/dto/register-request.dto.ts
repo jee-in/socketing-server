@@ -18,13 +18,4 @@ export class RegisterRequestDto {
   @IsString()
   @MinLength(6)
   password: string;
-
-  @ApiProperty({
-    example: 'password123',
-    description: 'Confirmation of the password (must match password)',
-    minLength: 6,
-  })
-  @IsString()
-  @MinLength(6)
-  confirmPassword: string;
 }

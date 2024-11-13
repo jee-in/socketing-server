@@ -23,12 +23,7 @@ export class AuthService {
   async register(
     registerDto: RegisterRequestDto,
   ): Promise<CommonResponse<RegisterResponseDto>> {
-    const { email, password, confirmPassword } = registerDto;
-
-    if (password !== confirmPassword) {
-      const error = ERROR_CODES.PASSWORDS_DO_NOT_MATCH;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
+    const { email, password } = registerDto;
 
     const existingUser = await this.userRepository.findOne({
       where: { email },
@@ -40,7 +35,7 @@ export class AuthService {
 
     let uniqueNickname = generateRandomNickname();
     let suffix = 1;
-    let savedUser;
+    let savedUser: User;
 
     await this.userRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -64,11 +59,11 @@ export class AuthService {
         const salt = crypto.randomBytes(16).toString('hex');
 
         const hashedPassword = crypto
-          .pbkdf2Sync(registerDto.password, salt, 1000, 64, 'sha256')
+          .pbkdf2Sync(password, salt, 1000, 64, 'sha256')
           .toString('hex');
 
         const newUser = this.userRepository.create({
-          ...registerDto,
+          email,
           nickname: uniqueNickname,
           salt,
           password: hashedPassword,

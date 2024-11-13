@@ -9,10 +9,10 @@ export const ERROR_CODES = {
     message: 'Invalid credentials',
     httpStatus: 401,
   },
-  PASSWORDS_DO_NOT_MATCH: {
+  NOT_CURRENTLY_AVAILABLE: {
     code: 3,
-    message: 'Passwords do not match',
-    httpStatus: 400,
+    message: 'Not currently available',
+    httpStatus: 503,
   },
   NICKNAME_ALREADY_EXISTS: {
     code: 4,
