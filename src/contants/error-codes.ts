@@ -29,4 +29,9 @@ export const ERROR_CODES = {
     message: 'Internal server error',
     httpStatus: 500,
   },
+  USER_NOT_FOUND: {
+    code: 7,
+    message: 'User not found',
+    httpStatus: 404,
+  },
 };

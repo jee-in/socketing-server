@@ -3,6 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as crypto from 'node:crypto';
+import { CommonResponse } from 'src/common/dto/common-response.dto';
+import { CustomException } from 'src/exceptions/custom-exception';
+import { ERROR_CODES } from 'src/contants/error-codes';
+import { UpdateNicknameResponseDto } from './dto/update-nickname-response.dto';
+import { UpdateNicknameRequestDto } from './dto/update-nickname-request.dto';
+import { UpdatePasswordRequestDto } from './dto/update-password-request.dto';
 
 @Injectable()
 export class UsersService {
@@ -11,57 +17,79 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
-
-  async findOne(id: string): Promise<User> {
-    return this.userRepository.findOne({ where: { id } });
-  }
-
-  async create(createUserDto: {
-    nickname: string;
-    email: string;
-    password: string;
-  }): Promise<User> {
-    const salt = crypto.randomBytes(16).toString('hex');
-
-    const hashedPassword = crypto
-      .pbkdf2Sync(createUserDto.password, salt, 1000, 64, 'sha256')
-      .toString('hex');
-
-    const newUser = this.userRepository.create({
-      ...createUserDto,
-      salt,
-      password: hashedPassword,
-    });
-
-    return this.userRepository.save(newUser);
-  }
-
-  async update(
-    id: string,
-    updateUserDto: { nickname?: string; email?: string; password?: string },
-  ): Promise<User> {
-    if (updateUserDto.password) {
-      const salt = crypto.randomBytes(16).toString('hex');
-      const hashedPassword = crypto
-        .pbkdf2Sync(updateUserDto.password, salt, 1000, 64, 'sha256')
-        .toString('hex');
-
-      updateUserDto.password = hashedPassword;
-      updateUserDto['salt'] = salt;
+  async findOne(id: string): Promise<CommonResponse<any>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    await this.userRepository.update(id, updateUserDto);
-    return this.userRepository.findOne({ where: { id } });
+    return new CommonResponse({
+      id: user.id,
+      email: user.email,
+      nickname: user.nickname,
+      profileImage: user.profileImage,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   }
 
-  async softDelete(id: number): Promise<void> {
+  async updateNickname(
+    id: string,
+    updateNicknameDto: UpdateNicknameRequestDto,
+  ): Promise<CommonResponse<UpdateNicknameResponseDto>> {
+    const { nickname } = updateNicknameDto;
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    user.nickname = nickname;
+    const savedUser = await this.userRepository.save(user);
+
+    return new CommonResponse({
+      id: savedUser.id,
+      nickname: savedUser.nickname,
+    });
+  }
+
+  async updatePassword(
+    id: string,
+    UpdatePasswordDto: UpdatePasswordRequestDto,
+  ): Promise<CommonResponse<any>> {
+    const { password } = UpdatePasswordDto;
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    user.password = crypto
+      .pbkdf2Sync(password, user.salt, 1000, 64, 'sha256')
+      .toString('hex');
+    await this.userRepository.save(user);
+
+    return new CommonResponse();
+  }
+
+  async softDelete(id: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
     await this.userRepository.softDelete(id);
   }
 
-  async restore(id: number): Promise<void> {
+  async restore(id: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
     await this.userRepository.restore(id);
   }
 }
