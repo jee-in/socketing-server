@@ -2,6 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import {
+  BadRequestException,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
+import { ERROR_CODES } from './contants/error-codes';
+import { CommonResponse } from './common/dto/common-response.dto';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,6 +16,30 @@ async function bootstrap() {
 
   app.setGlobalPrefix('/api');
   app.enableShutdownHooks(['SIGINT', 'SIGTERM']);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      exceptionFactory: (errors: ValidationError[]) => {
+        const details = errors.map((error) => ({
+          field: error.property,
+          message: Object.values(error.constraints || {}).join(', '),
+        }));
+
+        const errorCode = ERROR_CODES.VALIDATION_FAILED;
+
+        return new BadRequestException(
+          new CommonResponse(
+            undefined,
+            errorCode.message,
+            errorCode.code,
+            details,
+          ),
+        );
+      },
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Socketing API Documentation')

@@ -19,4 +19,9 @@ export const ERROR_CODES = {
     message: 'Nickname already exists',
     httpStatus: 409,
   },
+  VALIDATION_FAILED: {
+    code: 5,
+    message: 'Validation failed',
+    httpStatus: 400,
+  },
 };
