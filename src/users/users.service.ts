@@ -15,7 +15,7 @@ export class UsersService {
     return this.userRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: string): Promise<User> {
     return this.userRepository.findOne({ where: { id } });
   }
 
@@ -40,7 +40,7 @@ export class UsersService {
   }
 
   async update(
-    id: number,
+    id: string,
     updateUserDto: { nickname?: string; email?: string; password?: string },
   ): Promise<User> {
     if (updateUserDto.password) {

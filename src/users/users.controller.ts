@@ -19,7 +19,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number) {
+  findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
 
@@ -37,7 +37,7 @@ export class UsersController {
 
   @Patch(':id')
   update(
-    @Param('id') id: number,
+    @Param('id') id: string,
     @Body()
     updateUserDto: { nickname?: string; email?: string; password?: string },
   ) {
