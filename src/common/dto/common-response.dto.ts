@@ -22,12 +22,7 @@ export class CommonResponse<T> {
   data?: T;
 
   @ApiProperty({
-    example: [
-      {
-        field: 'email',
-        message: 'email must be an email',
-      },
-    ],
+    example: [],
     description:
       'Detailed information about the validation errors or specific issues',
     nullable: true,

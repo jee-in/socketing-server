@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { LoginRequestDto } from './dto/login-request.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import * as crypto from 'node:crypto';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { ERROR_CODES } from 'src/contants/error-codes';
 import { CustomException } from 'src/exceptions/custom-exception';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<CommonResponse<any>> {
+  async register(
+    registerDto: RegisterRequestDto,
+  ): Promise<CommonResponse<RegisterResponseDto>> {
     const { nickname, email, password, confirmPassword } = registerDto;
 
     if (password !== confirmPassword) {
@@ -55,7 +59,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    return new CommonResponse({
+    return new CommonResponse<RegisterResponseDto>({
       id: savedUser.id,
       nickname: savedUser.nickname,
       email: savedUser.email,
@@ -64,7 +68,9 @@ export class AuthService {
     });
   }
 
-  async login(loginDto: LoginDto): Promise<CommonResponse<any>> {
+  async login(
+    loginDto: LoginRequestDto,
+  ): Promise<CommonResponse<LoginResponseDto>> {
     const { email, password } = loginDto;
 
     const user = await this.userRepository.findOne({ where: { email } });

@@ -1,11 +1,25 @@
 import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { LoginRequestDto } from './dto/login-request.dto';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @ApiTags('Authentication')
+@ApiExtraModels(
+  CommonResponse,
+  RegisterRequestDto,
+  RegisterResponseDto,
+  LoginRequestDto,
+  LoginResponseDto,
+)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -47,8 +61,8 @@ export class AuthController {
     },
   })
   async register(
-    @Body() registerDto: RegisterDto,
-  ): Promise<CommonResponse<any>> {
+    @Body() registerDto: RegisterRequestDto,
+  ): Promise<CommonResponse<RegisterResponseDto>> {
     return this.authService.register(registerDto);
   }
 
@@ -80,7 +94,9 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() loginDto: LoginDto): Promise<CommonResponse<any>> {
+  async login(
+    @Body() loginDto: LoginRequestDto,
+  ): Promise<CommonResponse<LoginResponseDto>> {
     return this.authService.login(loginDto);
   }
 }
