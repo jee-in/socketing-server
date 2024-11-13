@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from './dto/register.dto';
@@ -11,6 +7,8 @@ import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import * as crypto from 'node:crypto';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
+import { ERROR_CODES } from 'src/contants/error-codes';
+import { CustomException } from 'src/exceptions/custom-exception';
 
 @Injectable()
 export class AuthService {
@@ -23,21 +21,24 @@ export class AuthService {
     const { nickname, email, password, confirmPassword } = registerDto;
 
     if (password !== confirmPassword) {
-      throw new BadRequestException('Passwords do not match');
+      const error = ERROR_CODES.PASSWORDS_DO_NOT_MATCH;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
     const existingUser = await this.userRepository.findOne({
       where: { email },
     });
     if (existingUser) {
-      throw new BadRequestException('Email already exists');
+      const error = ERROR_CODES.USER_ALREADY_EXISTS;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
     const existingNickname = await this.userRepository.findOne({
       where: { nickname },
     });
     if (existingNickname) {
-      throw new BadRequestException('Nickname already exists');
+      const error = ERROR_CODES.NICKNAME_ALREADY_EXISTS;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
     const salt = crypto.randomBytes(16).toString('hex');
@@ -54,17 +55,13 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    return {
-      code: 1,
-      message: 'Success',
-      data: {
-        id: savedUser.id,
-        nickname: savedUser.nickname,
-        email: savedUser.email,
-        createdAt: savedUser.createdAt,
-        updatedAt: savedUser.updatedAt,
-      },
-    };
+    return new CommonResponse({
+      id: savedUser.id,
+      nickname: savedUser.nickname,
+      email: savedUser.email,
+      createdAt: savedUser.createdAt,
+      updatedAt: savedUser.updatedAt,
+    });
   }
 
   async login(loginDto: LoginDto): Promise<CommonResponse<any>> {
@@ -72,27 +69,25 @@ export class AuthService {
 
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      const error = ERROR_CODES.INVALID_CREDENTIALS;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
     const hashedPassword = crypto
       .pbkdf2Sync(password, user.salt, 1000, 64, 'sha256')
       .toString('hex');
     if (hashedPassword !== user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      const error = ERROR_CODES.INVALID_CREDENTIALS;
+      throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
     const payload = { sub: user.id };
     const accessToken = this.jwtService.sign(payload);
 
-    return {
-      code: 1,
-      message: 'Success',
-      data: {
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        accessToken,
-      },
-    };
+    return new CommonResponse({
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      accessToken,
+    });
   }
 }
