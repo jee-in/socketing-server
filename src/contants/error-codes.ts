@@ -34,4 +34,9 @@ export const ERROR_CODES = {
     message: 'User not found',
     httpStatus: 404,
   },
+  UNAUTHORIZED: {
+    code: 8,
+    message: 'Unauthorized',
+    httpStatus: 401,
+  },
 };

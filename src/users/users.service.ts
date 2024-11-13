@@ -45,6 +45,14 @@ export class UsersService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
+    const existingNickname = await this.userRepository.findOne({
+      where: { nickname },
+    });
+    if (existingNickname && existingNickname.id !== user.id) {
+      const error = ERROR_CODES.NICKNAME_ALREADY_EXISTS;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
     user.nickname = nickname;
     const savedUser = await this.userRepository.save(user);
 

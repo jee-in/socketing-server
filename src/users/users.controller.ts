@@ -6,13 +6,21 @@ import {
   Delete,
   Patch,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { UpdateNicknameRequestDto } from './dto/update-nickname-request.dto';
 import { UpdateNicknameResponseDto } from './dto/update-nickname-response.dto';
 import { UpdatePasswordRequestDto } from './dto/update-password-request.dto';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -65,6 +73,7 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Update user nickname' })
+  @ApiBearerAuth()
   @ApiBody({
     description: 'The new nickname for the user',
     type: UpdateNicknameRequestDto,
@@ -84,12 +93,32 @@ export class UsersController {
     },
   })
   @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
     status: 404,
     description: 'User not found',
     schema: {
       example: {
         code: 7,
         message: 'User not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Nickname already exists',
+    schema: {
+      example: {
+        code: 4,
+        message: 'Nickname already exists',
       },
     },
   })
@@ -105,6 +134,7 @@ export class UsersController {
   })
   @Patch(':id/nickname')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
   updateNickname(
     @Param('id') id: string,
     @Body() updateNicknameDto: UpdateNicknameRequestDto,
@@ -113,6 +143,7 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Update user password' })
+  @ApiBearerAuth()
   @ApiBody({
     description: 'The new password for the user',
     type: UpdatePasswordRequestDto,
@@ -138,6 +169,16 @@ export class UsersController {
     },
   })
   @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
     status: 500,
     description: 'Internal server error',
     schema: {
@@ -149,6 +190,7 @@ export class UsersController {
   })
   @Patch(':id/password')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
   updatePassword(
     @Param('id') id: string,
     @Body() updatePasswordDto: UpdatePasswordRequestDto,
@@ -157,6 +199,7 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Soft delete a user' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 204,
     description: 'User soft-deleted successfully',
@@ -172,6 +215,16 @@ export class UsersController {
     },
   })
   @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
     status: 500,
     description: 'Internal server error',
     schema: {
@@ -183,6 +236,7 @@ export class UsersController {
   })
   @Delete(':id')
   @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
   softDelete(@Param('id') id: string): Promise<any> {
     return this.userService.softDelete(id);
   }
