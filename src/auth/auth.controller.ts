@@ -38,6 +38,7 @@ export class AuthController {
           id: '33f01179-9d75-4062-9012-591b54a25f64',
           nickname: '우아한하늘빛양치기',
           email: 'johndoe@example.com',
+          profileImage: 'https://example.com/profile-images/default.png',
           createdAt: '2024-11-12T12:00:00Z',
           updatedAt: '2024-11-12T12:00:00Z',
         },

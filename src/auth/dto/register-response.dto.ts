@@ -20,6 +20,13 @@ export class RegisterResponseDto {
   email: string;
 
   @ApiProperty({
+    example: 'https://example.com/profile-images/default.png',
+    description:
+      'The URL of the profile image associated with the user account. Defaults to a system-provided image if not set.',
+  })
+  profileImage: string;
+
+  @ApiProperty({
     example: '2024-11-12T12:00:00Z',
     description:
       'The ISO 8601 formatted timestamp indicating when the user account was initially created in the system.',

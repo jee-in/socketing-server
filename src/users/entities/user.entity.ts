@@ -18,6 +18,9 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ nullable: true })
+  profileImage: string;
+
   @Column({ default: 'user' })
   role: string;
 
