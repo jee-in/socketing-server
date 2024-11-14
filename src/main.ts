@@ -14,6 +14,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
+  app.enableCors({
+    origin: '*',
+    methods: '*',
+    credentials: true,
+  });
+
   app.setGlobalPrefix('/api');
   app.enableShutdownHooks(['SIGINT', 'SIGTERM']);
   app.useGlobalPipes(
