@@ -39,4 +39,9 @@ export const ERROR_CODES = {
     message: 'Unauthorized',
     httpStatus: 401,
   },
+  EVENT_NOT_FOUND: {
+    code: 9,
+    message: 'Event not found',
+    httpStatus: 404,
+  },
 };
