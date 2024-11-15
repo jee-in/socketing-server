@@ -44,4 +44,9 @@ export const ERROR_CODES = {
     message: 'Event not found',
     httpStatus: 404,
   },
+  DUPLICATE_SEAT: {
+    code: 10,
+    message: 'A seat with the same area, row, number, and event already exists',
+    httpStatus: 409,
+  },
 };

@@ -23,6 +23,8 @@ import { CreateEventResponseDto } from './dto/create-event-response.dto';
 import { UpdateEventRequestDto } from './dto/update-event-request.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
+import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -357,7 +359,110 @@ export class EventsController {
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
-  softDelete(@Param('id') id: string): Promise<void> {
+  softDeleteEvent(@Param('id') id: string): Promise<void> {
     return this.eventService.softDeleteEvent(id);
+  }
+
+  @ApiOperation({ summary: 'Create a new seat for a specific event' })
+  @ApiBearerAuth()
+  @ApiBody({
+    description: 'Seat creation request body',
+    type: CreateSeatRequestDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The seat has been successfully created.',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
+          cx: 50,
+          cy: 50,
+          area: 1,
+          row: 1,
+          number: 1,
+          event: {
+            id: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
+            title: 'Music Festival',
+            thumbnail: 'https://example.com/thumbnail.jpg',
+            place: 'Central Park',
+            cast: 'Famous Band',
+            ageLimit: 18,
+            createdAt: '2024-11-14T23:22:01.274Z',
+            updatedAt: '2024-11-14T23:22:01.274Z',
+          },
+          createdAt: '2024-11-15T13:19:39.188Z',
+          updatedAt: '2024-11-15T13:19:39.188Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+    schema: {
+      example: {
+        code: 5,
+        message: 'Validation failed',
+        details: [
+          {
+            field: 'cx',
+            message: 'cx must be an integer number',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found.',
+    schema: {
+      example: {
+        code: 9,
+        message: 'Event not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Duplicate seat for the given event.',
+    schema: {
+      example: {
+        code: 10,
+        message:
+          'A seat with the same area, row, number, and event already exists.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Post(':id/seats')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  createSeat(
+    @Param('id') eventId: string,
+    @Body() createSeatRequestDto: CreateSeatRequestDto,
+  ): Promise<CommonResponse<CreateSeatResponseDto>> {
+    return this.eventService.createSeat(eventId, createSeatRequestDto);
   }
 }

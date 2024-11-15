@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Event } from './entities/event.entity';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { ERROR_CODES } from 'src/contants/error-codes';
@@ -10,12 +10,17 @@ import { plainToInstance } from 'class-transformer';
 import { CreateEventResponseDto } from './dto/create-event-response.dto';
 import { UpdateEventRequestDto } from './dto/update-event-request.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
+import { Seat } from './entities/seat.entity';
+import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
+import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
 
 @Injectable()
 export class EventsService {
   constructor(
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+    @InjectRepository(Seat)
+    private readonly seatRepository: Repository<Seat>,
   ) {}
 
   async findOne(id: string): Promise<CommonResponse<any>> {
@@ -145,5 +150,48 @@ export class EventsService {
     }
 
     await this.eventRepository.softDelete(id);
+  }
+
+  async createSeat(
+    eventId: string,
+    createSeatRequestDto: CreateSeatRequestDto,
+  ): Promise<CommonResponse<CreateSeatResponseDto>> {
+    const { cx, cy, area, row, number } = createSeatRequestDto;
+
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      const error = ERROR_CODES.EVENT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    const seat = this.seatRepository.create({
+      cx,
+      cy,
+      area,
+      row,
+      number,
+      event,
+    });
+
+    try {
+      const savedSeat = await this.seatRepository.save(seat);
+      const seatResponse = plainToInstance(CreateSeatResponseDto, savedSeat, {
+        excludeExtraneousValues: true,
+      });
+      return new CommonResponse(seatResponse);
+    } catch (e) {
+      if (e instanceof QueryFailedError && e.driverError.code === '23505') {
+        const duplicateError = ERROR_CODES.DUPLICATE_SEAT;
+        throw new CustomException(
+          duplicateError.code,
+          duplicateError.message,
+          duplicateError.httpStatus,
+        );
+      }
+      throw e;
+    }
   }
 }
