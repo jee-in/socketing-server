@@ -7,6 +7,7 @@ import {
   ValidationError,
   ValidationPipe,
 } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
 import { ERROR_CODES } from './contants/error-codes';
 import { CommonResponse } from './common/dto/common-response.dto';
 
@@ -22,6 +23,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix('/api');
   app.enableShutdownHooks(['SIGINT', 'SIGTERM']);
+
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
