@@ -26,6 +26,8 @@ import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
 import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
+import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
+import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -584,5 +586,101 @@ export class EventsController {
     @Param('seatId') seatId: string,
   ): Promise<CommonResponse<any>> {
     return this.eventService.findOneSeat(eventId, seatId);
+  }
+
+  @ApiOperation({
+    summary: 'Update seat information',
+    description: 'Updates the information of a specific seat within an event.',
+  })
+  @ApiBearerAuth()
+  @ApiBody({
+    description: 'Seat update payload',
+    type: UpdateSeatRequestDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The seat has been successfully updated.',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
+          cx: 150,
+          cy: 150,
+          area: 1,
+          row: 1,
+          number: 1,
+          createdAt: '2024-11-15T13:19:39.188Z',
+          updatedAt: '2024-11-16T03:06:27.361Z',
+          event: {
+            id: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
+            title: 'Music Festival',
+            thumbnail: 'https://example.com/thumbnail.jpg',
+            place: 'Central Park',
+            cast: 'Famous Band',
+            ageLimit: 18,
+            createdAt: '2024-11-14T23:22:01.274Z',
+            updatedAt: '2024-11-14T23:22:01.274Z',
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+    schema: {
+      example: {
+        code: 5,
+        message: 'Validation failed',
+        details: [
+          {
+            field: 'cx',
+            message: 'cx must be an integer number',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Seat not found for the specified event',
+    schema: {
+      example: {
+        code: 11,
+        message: 'Seat not found for the specified event',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Put(':eventId/seats/:seatId')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  updateSeat(
+    @Param('eventId') eventId: string,
+    @Param('seatId') seatId: string,
+    @Body() UpdateSeatRequestDto: UpdateSeatRequestDto,
+  ): Promise<CommonResponse<UpdateSeatResponseDto>> {
+    return this.eventService.updateSeat(eventId, seatId, UpdateSeatRequestDto);
   }
 }

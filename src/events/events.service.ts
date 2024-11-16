@@ -13,6 +13,8 @@ import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { Seat } from './entities/seat.entity';
 import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
 import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
+import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
+import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
 
 @Injectable()
 export class EventsService {
@@ -249,5 +251,45 @@ export class EventsService {
     }
 
     return new CommonResponse(seat);
+  }
+
+  async updateSeat(
+    eventId: string,
+    seatId: string,
+    UpdateSeatRequestDto: UpdateSeatRequestDto,
+  ): Promise<CommonResponse<UpdateSeatResponseDto>> {
+    const { cx, cy, area, row, number } = UpdateSeatRequestDto;
+
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      const error = ERROR_CODES.EVENT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    const seat = await this.seatRepository.findOne({
+      where: { id: seatId, event: { id: eventId } },
+      relations: ['event'],
+    });
+
+    if (!seat) {
+      const error = ERROR_CODES.SEAT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    seat.cx = cx;
+    seat.cy = cy;
+    seat.area = area;
+    seat.row = row;
+    seat.number = number;
+
+    const updatedSeat = await this.seatRepository.save(seat);
+    const seatResponse = plainToInstance(UpdateSeatResponseDto, updatedSeat, {
+      excludeExtraneousValues: true,
+    });
+
+    return new CommonResponse(seatResponse);
   }
 }
