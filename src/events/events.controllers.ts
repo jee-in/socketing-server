@@ -49,6 +49,7 @@ export class EventsController {
           place: 'Central Park',
           cast: 'Famous Band',
           ageLimit: 17,
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" /></svg>',
           createdAt: '2024-11-14T22:53:15.873Z',
           updatedAt: '2024-11-15T02:27:46.812Z',
           eventDates: [
@@ -194,6 +195,7 @@ export class EventsController {
           place: 'Central Park',
           cast: 'Famous Band',
           ageLimit: 18,
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" /></svg>',
           eventDates: [
             {
               id: '22e9f530-b60c-4a7b-8761-4935ff3f7d09',
@@ -263,6 +265,7 @@ export class EventsController {
           place: 'Central Park',
           cast: 'Famous Band',
           ageLimit: 18,
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" /></svg>',
           eventDates: [
             {
               id: '22e9f530-b60c-4a7b-8761-4935ff3f7d09',

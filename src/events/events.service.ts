@@ -40,6 +40,7 @@ export class EventsService {
         'event.place',
         'event.cast',
         'event.ageLimit',
+        'event.svg',
         'event.createdAt',
         'event.updatedAt',
         'eventDates.id',
@@ -88,7 +89,7 @@ export class EventsService {
   async createEvent(
     createEventRequestDto: CreateEventRequestDto,
   ): Promise<CommonResponse<CreateEventResponseDto>> {
-    const { title, thumbnail, place, cast, ageLimit, eventDates } =
+    const { title, thumbnail, place, cast, ageLimit, svg, eventDates } =
       createEventRequestDto;
 
     const event = this.eventRepository.create({
@@ -97,6 +98,7 @@ export class EventsService {
       place,
       cast,
       ageLimit,
+      svg,
       eventDates: eventDates?.map((date) => ({ date })),
     });
 
@@ -111,7 +113,8 @@ export class EventsService {
     id: string,
     UpdateEventRequestDto: UpdateEventRequestDto,
   ): Promise<CommonResponse<UpdateEventResponseDto>> {
-    const { title, thumbnail, place, cast, ageLimit } = UpdateEventRequestDto;
+    const { title, thumbnail, place, cast, ageLimit, svg } =
+      UpdateEventRequestDto;
 
     const event = await this.eventRepository.findOne({
       where: { id },
@@ -123,11 +126,12 @@ export class EventsService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    if (title) event.title = title;
-    if (thumbnail) event.thumbnail = thumbnail;
-    if (place) event.place = place;
-    if (cast) event.cast = cast;
-    if (ageLimit !== undefined) event.ageLimit = ageLimit;
+    event.title = title;
+    event.thumbnail = thumbnail;
+    event.place = place;
+    event.cast = cast;
+    event.ageLimit = ageLimit;
+    event.svg = svg;
 
     const updatedEvent = await this.eventRepository.save(event);
     const eventResponse = plainToInstance(

@@ -40,6 +40,15 @@ export class CreateEventRequestDto {
   ageLimit?: number;
 
   @ApiPropertyOptional({
+    description: 'SVG data for the event design or layout',
+    example:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" /></svg>',
+  })
+  @IsOptional()
+  @IsString()
+  svg?: string;
+
+  @ApiPropertyOptional({
     description: 'List of event dates in ISO 8601 format',
     type: [String], // Swagger에서는 Date를 String으로 표시
     example: ['2024-12-01T19:00:00.000Z', '2024-12-02T19:00:00.000Z'],

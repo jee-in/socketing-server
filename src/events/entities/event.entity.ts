@@ -37,6 +37,10 @@ export class Event {
   ageLimit?: number;
 
   @Expose()
+  @Column({ type: 'text', nullable: true })
+  svg?: string;
+
+  @Expose()
   @OneToMany(() => EventDate, (eventDate) => eventDate.event, { cascade: true })
   eventDates: EventDate[];
 
