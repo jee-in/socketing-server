@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -464,5 +465,124 @@ export class EventsController {
     @Body() createSeatRequestDto: CreateSeatRequestDto,
   ): Promise<CommonResponse<CreateSeatResponseDto>> {
     return this.eventService.createSeat(eventId, createSeatRequestDto);
+  }
+
+  @Get(':eventId/seats')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get all seats for a specific event' })
+  @ApiParam({
+    name: 'eventId',
+    description: 'The ID of the event',
+    required: true,
+    example: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all seats for the specified event',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: [
+          {
+            id: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
+            cx: 50,
+            cy: 50,
+            area: 1,
+            row: 1,
+            number: 1,
+            createdAt: '2024-11-15T13:19:39.188Z',
+            updatedAt: '2024-11-15T13:19:39.188Z',
+          },
+          {
+            id: '5b54820d-d6b8-4eea-840f-f191881198ac',
+            cx: 100,
+            cy: 100,
+            area: 1,
+            row: 1,
+            number: 3,
+            createdAt: '2024-11-15T22:35:47.251Z',
+            updatedAt: '2024-11-15T22:35:47.251Z',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  findAllSeats(
+    @Param('eventId') eventId: string,
+  ): Promise<CommonResponse<any>> {
+    return this.eventService.findAllSeats(eventId);
+  }
+
+  @Get(':eventId/seats/:seatId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Get details of a specific seat for a specific event',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Details of the specified seat',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
+          cx: 100,
+          cy: 200,
+          area: 1,
+          row: 10,
+          number: 20,
+          createdAt: '2024-11-16T08:00:00.000Z',
+          updatedAt: '2024-11-16T08:00:00.000Z',
+          event: {
+            id: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
+            title: 'Sample Event',
+            thumbnail: 'https://example.com/thumbnail.jpg',
+            place: 'Concert Hall',
+            cast: 'John Doe',
+            ageLimit: 18,
+            createdAt: '2024-11-15T08:00:00.000Z',
+            updatedAt: '2024-11-15T08:00:00.000Z',
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Seat not found for the specified event',
+    schema: {
+      example: {
+        code: 11,
+        message: 'Seat not found for the specified event',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  findOneSeat(
+    @Param('eventId') eventId: string,
+    @Param('seatId') seatId: string,
+  ): Promise<CommonResponse<any>> {
+    return this.eventService.findOneSeat(eventId, seatId);
   }
 }

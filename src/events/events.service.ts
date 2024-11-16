@@ -194,4 +194,60 @@ export class EventsService {
       throw e;
     }
   }
+
+  async findAllSeats(eventId: string): Promise<CommonResponse<Seat[]>> {
+    const seats = await this.seatRepository
+      .createQueryBuilder('seat')
+      .where('seat.eventId = :eventId', { eventId })
+      .select([
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'seat.createdAt',
+        'seat.updatedAt',
+      ])
+      .getMany();
+
+    return new CommonResponse(seats);
+  }
+
+  async findOneSeat(
+    eventId: string,
+    seatId: string,
+  ): Promise<CommonResponse<Seat>> {
+    const seat = await this.seatRepository
+      .createQueryBuilder('seat')
+      .leftJoinAndSelect('seat.event', 'event', 'event.deletedAt IS NULL')
+      .select([
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'seat.createdAt',
+        'seat.updatedAt',
+        'event.id',
+        'event.title',
+        'event.thumbnail',
+        'event.place',
+        'event.cast',
+        'event.ageLimit',
+        'event.createdAt',
+        'event.updatedAt',
+      ])
+      .where('seat.id = :seatId', { seatId })
+      .andWhere('event.id = :eventId', { eventId })
+      .getOne();
+
+    if (!seat) {
+      const error = ERROR_CODES.SEAT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    return new CommonResponse(seat);
+  }
 }
