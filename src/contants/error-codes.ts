@@ -54,4 +54,14 @@ export const ERROR_CODES = {
     message: 'Seat not found for the specified event',
     httpStatus: 404,
   },
+  EVENT_DATE_NOT_FOUND: {
+    code: 12,
+    message: 'Event date not found for the specified event',
+    httpStatus: 404,
+  },
+  EXISTING_RESERVATION: {
+    code: 13,
+    message: 'This seat is already reserved for the selected event date',
+    httpStatus: 409,
+  },
 };
