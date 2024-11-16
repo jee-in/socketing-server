@@ -292,4 +292,17 @@ export class EventsService {
 
     return new CommonResponse(seatResponse);
   }
+
+  async deleteSeat(eventId: string, seatId: string) {
+    const seat = await this.seatRepository.findOne({
+      where: { id: seatId, event: { id: eventId } },
+    });
+
+    if (!seat) {
+      const error = ERROR_CODES.SEAT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    await this.seatRepository.remove(seat);
+  }
 }

@@ -683,4 +683,54 @@ export class EventsController {
   ): Promise<CommonResponse<UpdateSeatResponseDto>> {
     return this.eventService.updateSeat(eventId, seatId, UpdateSeatRequestDto);
   }
+
+  @ApiOperation({
+    summary: 'Delete a seat from an event',
+    description:
+      'Deletes a specific seat associated with the provided event ID and seat ID.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 204,
+    description: 'The seat has been successfully deleted.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Seat not found for the specified event',
+    schema: {
+      example: {
+        code: 11,
+        message: 'Seat not found for the specified event',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Delete(':eventId/seats/:seatId')
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  deleteSeat(
+    @Param('eventId') eventId: string,
+    @Param('seatId') seatId: string,
+  ): Promise<void> {
+    return this.eventService.deleteSeat(eventId, seatId);
+  }
 }
