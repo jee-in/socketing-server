@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { CreateReservationRequestDto } from './dto/create-reservation-request.dto';
 import { CreateReservationResponseDto } from './dto/create-reservation-response.dto';
@@ -16,6 +15,7 @@ import { SeatDto } from 'src/events/dto/seat.dto';
 import { UserDto } from 'src/users/dto/user.dto';
 import { FindAllReservationRequestDto } from './dto/find-all-reservation-request.dto';
 import { FindAllReservationResponseDto } from './dto/find-all-reservation-response.dto';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ReservationsService {
@@ -173,7 +173,6 @@ export class ReservationsService {
     reservationId: string,
     userId: string,
   ): Promise<any> {
-    console.log({ userId, reservationId });
     const reservation = await this.reservationRepository
       .createQueryBuilder('reservation')
       .innerJoinAndSelect('reservation.user', 'user')
@@ -218,5 +217,24 @@ export class ReservationsService {
     }
 
     return new CommonResponse(reservation);
+  }
+
+  async softDeleteReservation(reservationId: string, userId: string) {
+    const reservation = await this.reservationRepository
+      .createQueryBuilder('reservation')
+      .innerJoin('reservation.user', 'user')
+      .where('reservation.id = :reservationId', { reservationId })
+      .andWhere('user.id = :userId', { userId })
+      .getOne();
+
+    if (!reservation) {
+      throw new CustomException(
+        ERROR_CODES.RESERVATION_NOT_FOUND.code,
+        ERROR_CODES.RESERVATION_NOT_FOUND.message,
+        ERROR_CODES.RESERVATION_NOT_FOUND.httpStatus,
+      );
+    }
+
+    await this.reservationRepository.softRemove(reservation);
   }
 }

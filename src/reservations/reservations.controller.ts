@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -305,6 +306,16 @@ export class ReservationsController {
     },
   })
   @ApiResponse({
+    status: 404,
+    description: 'Reservation not found or not owned by the user.',
+    schema: {
+      example: {
+        code: 14,
+        message: 'Reservation not found',
+      },
+    },
+  })
+  @ApiResponse({
     status: 500,
     description: 'Internal server error',
     schema: {
@@ -324,5 +335,63 @@ export class ReservationsController {
   ): Promise<any> {
     const { userId } = req.user;
     return this.reservationService.findOneReservation(reservationId, userId);
+  }
+
+  @ApiOperation({
+    summary: 'Soft delete a reservation',
+    description:
+      'Soft delete a specific reservation by its ID. This will mark the reservation as deleted without removing it from the database.',
+  })
+  @ApiParam({
+    name: 'reservationId',
+    type: 'string',
+    required: true,
+    description: 'The UUID of the reservation to delete.',
+    example: '34c32626-3f06-47c9-9515-aece077290ef',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'The reservation was successfully deleted.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Reservation not found or not owned by the user.',
+    schema: {
+      example: {
+        code: 14,
+        message: 'Reservation not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Delete(':reservationId')
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  softDeleteReservation(
+    @Param('reservationId') reservationId: string,
+    @Req() req,
+  ) {
+    const { userId } = req.user;
+    return this.reservationService.softDeleteReservation(reservationId, userId);
   }
 }
