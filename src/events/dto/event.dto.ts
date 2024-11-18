@@ -24,6 +24,9 @@ export class EventDto {
   svg?: string;
 
   @Expose({ groups: ['basic', 'detailed'] })
+  ticketingStartTime?: Date;
+
+  @Expose({ groups: ['basic', 'detailed'] })
   @Type(() => EventDateDto)
   eventDates: EventDateDto[];
 

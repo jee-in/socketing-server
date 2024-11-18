@@ -41,6 +41,7 @@ export class EventsService {
         'event.cast',
         'event.ageLimit',
         'event.svg',
+        'event.ticketingStartTime',
         'event.createdAt',
         'event.updatedAt',
         'eventDates.id',
@@ -74,6 +75,7 @@ export class EventsService {
         'event.place',
         'event.cast',
         'event.ageLimit',
+        'event.ticketingStartTime',
         'event.createdAt',
         'event.updatedAt',
         'eventDates.id',
@@ -89,8 +91,16 @@ export class EventsService {
   async createEvent(
     createEventRequestDto: CreateEventRequestDto,
   ): Promise<CommonResponse<CreateEventResponseDto>> {
-    const { title, thumbnail, place, cast, ageLimit, svg, eventDates } =
-      createEventRequestDto;
+    const {
+      title,
+      thumbnail,
+      place,
+      cast,
+      ageLimit,
+      svg,
+      ticketingStartTime,
+      eventDates,
+    } = createEventRequestDto;
 
     const event = this.eventRepository.create({
       title,
@@ -99,6 +109,7 @@ export class EventsService {
       cast,
       ageLimit,
       svg,
+      ticketingStartTime,
       eventDates: eventDates?.map((date) => ({ date })),
     });
 
@@ -113,7 +124,7 @@ export class EventsService {
     id: string,
     UpdateEventRequestDto: UpdateEventRequestDto,
   ): Promise<CommonResponse<UpdateEventResponseDto>> {
-    const { title, thumbnail, place, cast, ageLimit, svg } =
+    const { title, thumbnail, place, cast, ageLimit, svg, ticketingStartTime } =
       UpdateEventRequestDto;
 
     const event = await this.eventRepository.findOne({
@@ -132,6 +143,7 @@ export class EventsService {
     event.cast = cast;
     event.ageLimit = ageLimit;
     event.svg = svg;
+    event.ticketingStartTime = ticketingStartTime;
 
     const updatedEvent = await this.eventRepository.save(event);
     const eventResponse = plainToInstance(
@@ -242,6 +254,7 @@ export class EventsService {
         'event.place',
         'event.cast',
         'event.ageLimit',
+        'event.ticketingStartTime',
         'event.createdAt',
         'event.updatedAt',
       ])

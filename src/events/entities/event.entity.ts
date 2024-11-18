@@ -41,6 +41,10 @@ export class Event {
   svg?: string;
 
   @Expose()
+  @Column({ type: 'timestamp', nullable: true })
+  ticketingStartTime?: Date;
+
+  @Expose()
   @OneToMany(() => EventDate, (eventDate) => eventDate.event, { cascade: true })
   eventDates: EventDate[];
 

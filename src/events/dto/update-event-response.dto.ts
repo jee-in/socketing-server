@@ -41,6 +41,11 @@ export class UpdateEventResponseDto {
   svg?: string;
 
   @Expose()
+  @IsOptional()
+  @IsDate()
+  ticketingStartTime?: Date;
+
+  @Expose()
   @IsDate()
   createdAt: Date;
 

@@ -50,4 +50,13 @@ export class UpdateEventRequestDto {
   @IsOptional()
   @IsString()
   svg?: string;
+
+  @ApiPropertyOptional({
+    description: 'The starting time for ticketing in ISO 8601 format',
+    type: String,
+    example: '2024-11-20T10:00:00.000Z',
+  })
+  @IsOptional()
+  @IsString()
+  ticketingStartTime?: Date;
 }

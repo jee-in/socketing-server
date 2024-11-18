@@ -49,6 +49,15 @@ export class CreateEventRequestDto {
   svg?: string;
 
   @ApiPropertyOptional({
+    description: 'The starting time for ticketing in ISO 8601 format',
+    type: String,
+    example: '2024-11-20T10:00:00.000Z',
+  })
+  @IsOptional()
+  @IsString()
+  ticketingStartTime?: Date;
+
+  @ApiPropertyOptional({
     description: 'List of event dates in ISO 8601 format',
     type: [String], // Swagger에서는 Date를 String으로 표시
     example: ['2024-12-01T19:00:00.000Z', '2024-12-02T19:00:00.000Z'],

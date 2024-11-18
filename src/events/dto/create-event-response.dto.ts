@@ -35,6 +35,11 @@ export class CreateEventResponseDto {
   svg?: string;
 
   @Expose()
+  @IsOptional()
+  @IsDate()
+  ticketingStartTime?: Date;
+
+  @Expose()
   @IsArray()
   @IsOptional()
   @Type(() => EventDateDto)
