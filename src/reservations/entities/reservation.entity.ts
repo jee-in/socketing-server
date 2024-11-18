@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 
 @Entity()
-@Unique(['user', 'seat', 'eventDate'])
+@Unique(['seat', 'eventDate'])
 export class Reservation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
