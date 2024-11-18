@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { IsDate } from 'class-validator';
-import { Event } from '../entities/event.entity';
+import { EventDto } from './event.dto';
 
 export class UpdateSeatResponseDto {
   @Expose()
@@ -22,8 +22,8 @@ export class UpdateSeatResponseDto {
   number: number;
 
   @Expose()
-  @Type(() => Event)
-  event: Event;
+  @Type(() => EventDto)
+  event: EventDto;
 
   @Expose()
   @IsDate()

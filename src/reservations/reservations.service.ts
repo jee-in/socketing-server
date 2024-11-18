@@ -11,6 +11,11 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { ERROR_CODES } from 'src/contants/error-codes';
 import { CustomException } from 'src/exceptions/custom-exception';
 import { plainToInstance } from 'class-transformer';
+import { EventDateDto } from 'src/events/dto/event-date-dto';
+import { SeatDto } from 'src/events/dto/seat.dto';
+import { UserDto } from 'src/users/dto/user.dto';
+import { FindAllReservationRequestDto } from './dto/find-all-reservation-request.dto';
+import { FindAllReservationResponseDto } from './dto/find-all-reservation-response.dto';
 
 @Injectable()
 export class ReservationsService {
@@ -69,6 +74,34 @@ export class ReservationsService {
         CreateReservationResponseDto,
         savedReservation,
         {
+          groups: ['detailed'],
+          excludeExtraneousValues: true,
+        },
+      );
+
+      reservationResponse.eventDate = plainToInstance(
+        EventDateDto,
+        savedReservation.eventDate,
+        {
+          groups: ['basic'],
+          excludeExtraneousValues: true,
+        },
+      );
+
+      reservationResponse.seat = plainToInstance(
+        SeatDto,
+        savedReservation.seat,
+        {
+          groups: ['basic'],
+          excludeExtraneousValues: true,
+        },
+      );
+
+      reservationResponse.user = plainToInstance(
+        UserDto,
+        savedReservation.user,
+        {
+          groups: ['basic'],
           excludeExtraneousValues: true,
         },
       );
@@ -85,5 +118,105 @@ export class ReservationsService {
       }
       throw e;
     }
+  }
+
+  async findAllReservation(
+    findAllReservationRequestDto: FindAllReservationRequestDto,
+    userId: string,
+  ): Promise<CommonResponse<FindAllReservationResponseDto[]>> {
+    const { eventId } = findAllReservationRequestDto;
+
+    const queryBuilder = this.reservationRepository
+      .createQueryBuilder('reservation')
+      .innerJoinAndSelect('reservation.user', 'user')
+      .innerJoinAndSelect('reservation.eventDate', 'eventDate')
+      .innerJoinAndSelect('eventDate.event', 'event')
+      .innerJoinAndSelect('reservation.seat', 'seat')
+      .innerJoinAndSelect('seat.event', 'seatEvent')
+      .andWhere('user.id = :userId', { userId });
+
+    if (eventId) {
+      queryBuilder.andWhere('event.id = :eventId', { eventId });
+    }
+
+    const reservations = await queryBuilder
+      .select([
+        'reservation.id',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.profileImage',
+        'user.role',
+        'eventDate.id',
+        'eventDate.date',
+        'event.id',
+        'event.title',
+        'event.thumbnail',
+        'event.place',
+        'event.cast',
+        'event.ageLimit',
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'reservation.createdAt',
+        'reservation.updatedAt',
+      ])
+      .getMany();
+
+    return new CommonResponse(reservations);
+  }
+
+  async findOneReservation(
+    reservationId: string,
+    userId: string,
+  ): Promise<any> {
+    console.log({ userId, reservationId });
+    const reservation = await this.reservationRepository
+      .createQueryBuilder('reservation')
+      .innerJoinAndSelect('reservation.user', 'user')
+      .innerJoinAndSelect('reservation.eventDate', 'eventDate')
+      .innerJoinAndSelect('eventDate.event', 'event')
+      .innerJoinAndSelect('reservation.seat', 'seat')
+      .innerJoinAndSelect('seat.event', 'seatEvent')
+      .where('reservation.id = :reservationId', { reservationId })
+      .andWhere('user.id = :userId', { userId })
+      .select([
+        'reservation.id',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.profileImage',
+        'user.role',
+        'eventDate.id',
+        'eventDate.date',
+        'event.id',
+        'event.title',
+        'event.thumbnail',
+        'event.place',
+        'event.cast',
+        'event.ageLimit',
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'reservation.createdAt',
+        'reservation.updatedAt',
+      ])
+      .getOne();
+
+    if (!reservation) {
+      throw new CustomException(
+        ERROR_CODES.RESERVATION_NOT_FOUND.code,
+        ERROR_CODES.RESERVATION_NOT_FOUND.message,
+        ERROR_CODES.RESERVATION_NOT_FOUND.httpStatus,
+      );
+    }
+
+    return new CommonResponse(reservation);
   }
 }
