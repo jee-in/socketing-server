@@ -46,7 +46,7 @@ export class Seat {
   })
   event: Event;
 
-  @OneToMany(() => Reservation, (reservation) => reservation.user, {
+  @OneToMany(() => Reservation, (reservation) => reservation.seat, {
     cascade: true,
   })
   reservations: Reservation[];

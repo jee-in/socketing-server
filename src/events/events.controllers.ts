@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,6 +15,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -743,5 +745,186 @@ export class EventsController {
     @Param('seatId') seatId: string,
   ): Promise<void> {
     return this.eventService.deleteSeat(eventId, seatId);
+  }
+
+  @ApiOperation({
+    summary: 'Get seat reservation status for an event',
+    description:
+      'Fetches the reservation status for all seats in a specific event. Optionally filters by eventDateId.',
+  })
+  @ApiQuery({
+    name: 'eventDateId',
+    required: false,
+    type: String,
+    description: 'The ID of the event date to filter by.',
+  })
+  @ApiParam({
+    name: 'eventId',
+    required: true,
+    type: String,
+    description: 'The ID of the event to fetch seat reservation status for.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully fetched seat reservation status.',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: [
+          {
+            id: '5b54820d-d6b8-4eea-840f-f191881198ac',
+            cx: 100,
+            cy: 100,
+            area: 1,
+            row: 1,
+            number: 3,
+            reservations: [
+              {
+                id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',
+                eventDate: {
+                  id: 'aad8e60c-7973-40c6-b53e-335ac03a2af0',
+                  date: '2024-12-02T19:00:00.000Z',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found.',
+    schema: {
+      example: {
+        code: 9,
+        message: 'Event not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Get(':eventId/seats-status')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  findAllSeatStatus(
+    @Param('eventId') eventId: string,
+    @Query('eventDateId') eventDateId: string,
+  ) {
+    return this.eventService.findAllSeatStatus(eventId, eventDateId);
+  }
+
+  @ApiOperation({
+    summary: 'Get reservation status for a specific seat in an event',
+    description:
+      'Fetches the reservation status for a specific seat in a specific event. Includes reservation details if applicable.',
+  })
+  @ApiParam({
+    name: 'eventId',
+    required: true,
+    type: String,
+    description: 'The ID of the event to fetch seat reservation status for.',
+    example: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
+  })
+  @ApiParam({
+    name: 'seatId',
+    required: true,
+    type: String,
+    description: 'The ID of the seat to fetch reservation status for.',
+    example: '5b54820d-d6b8-4eea-840f-f191881198ac',
+  })
+  @ApiQuery({
+    name: 'eventDateId',
+    required: false,
+    type: String,
+    description: 'The ID of the event date to filter by.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully fetched seat reservation status.',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: '5b54820d-d6b8-4eea-840f-f191881198ac',
+          cx: 100,
+          cy: 100,
+          area: 1,
+          row: 1,
+          number: 3,
+          reservations: [
+            {
+              id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',
+              eventDate: {
+                id: 'aad8e60c-7973-40c6-b53e-335ac03a2af0',
+                date: '2024-12-02T19:00:00.000Z',
+              },
+            },
+          ],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Seat not found for the specified event',
+    schema: {
+      example: {
+        code: 11,
+        message: 'Seat not found for the specified event',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Get(':eventId/seats-status/:seatId')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  findOneSeatStatus(
+    @Param('eventId') eventId: string,
+    @Param('seatId') seatId: string,
+    @Query('eventDateId') eventDateId: string,
+  ) {
+    return this.eventService.findOneSeatStatus(eventId, seatId, eventDateId);
   }
 }

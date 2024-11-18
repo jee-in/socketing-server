@@ -322,4 +322,76 @@ export class EventsService {
 
     await this.seatRepository.remove(seat);
   }
+
+  async findAllSeatStatus(eventId: string, eventDateId: string) {
+    const queryBuilder = this.seatRepository
+      .createQueryBuilder('seat')
+      .leftJoinAndSelect(
+        'seat.reservations',
+        'reservation',
+        'reservation.deletedAt IS NULL',
+      )
+      .leftJoinAndSelect('reservation.eventDate', 'eventDate')
+      .where('seat.eventId = :eventId', { eventId })
+      .select([
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'reservation.id',
+        'eventDate.id',
+        'eventDate.date',
+      ]);
+
+    if (eventDateId) {
+      queryBuilder.andWhere('eventDate.id = :eventDateId', { eventDateId });
+    }
+
+    const seats = await queryBuilder.getMany();
+
+    return new CommonResponse(seats);
+  }
+
+  async findOneSeatStatus(
+    eventId: string,
+    seatId: string,
+    eventDateId: string,
+  ) {
+    const queryBuilder = this.seatRepository
+      .createQueryBuilder('seat')
+      .leftJoinAndSelect(
+        'seat.reservations',
+        'reservation',
+        'reservation.deletedAt IS NULL',
+      )
+      .leftJoinAndSelect('reservation.eventDate', 'eventDate')
+      .where('seat.eventId = :eventId', { eventId })
+      .andWhere('seat.id = :seatId', { seatId })
+      .select([
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'reservation.id',
+        'eventDate.id',
+        'eventDate.date',
+      ]);
+
+    if (eventDateId) {
+      queryBuilder.andWhere('eventDate.id = :eventDateId', { eventDateId });
+    }
+
+    const seats = await queryBuilder.getOne();
+
+    if (!seats) {
+      const error = ERROR_CODES.SEAT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    return new CommonResponse(seats);
+  }
 }
