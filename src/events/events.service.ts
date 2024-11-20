@@ -346,7 +346,10 @@ export class EventsService {
       ]);
 
     if (eventDateId) {
-      queryBuilder.andWhere('eventDate.id = :eventDateId', { eventDateId });
+      queryBuilder.andWhere(
+        '(eventDate.id = :eventDateId OR :eventDateId IS NULL)',
+        { eventDateId },
+      );
     }
 
     const seats = await queryBuilder.getMany();
@@ -382,7 +385,10 @@ export class EventsService {
       ]);
 
     if (eventDateId) {
-      queryBuilder.andWhere('eventDate.id = :eventDateId', { eventDateId });
+      queryBuilder.andWhere(
+        '(eventDate.id = :eventDateId OR :eventDateId IS NULL)',
+        { eventDateId },
+      );
     }
 
     const seats = await queryBuilder.getOne();
