@@ -99,7 +99,7 @@ export class AuthController {
         message: 'Success',
         data: {
           tokenType: 'Bearer',
-          expiresIn: 3600,
+          expiresIn: 86400,
           accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
       },

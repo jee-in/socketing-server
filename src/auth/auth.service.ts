@@ -107,7 +107,7 @@ export class AuthService {
 
     return new CommonResponse({
       tokenType: 'Bearer',
-      expiresIn: 3600,
+      expiresIn: 86400,
       accessToken,
     });
   }
