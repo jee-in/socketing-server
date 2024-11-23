@@ -78,6 +78,7 @@ export class AuthService {
       nickname: savedUser.nickname,
       email: savedUser.email,
       profileImage: savedUser.profileImage,
+      role: savedUser.role,
       createdAt: savedUser.createdAt,
       updatedAt: savedUser.updatedAt,
     });

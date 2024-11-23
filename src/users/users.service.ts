@@ -29,6 +29,7 @@ export class UsersService {
       email: user.email,
       nickname: user.nickname,
       profileImage: user.profileImage,
+      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

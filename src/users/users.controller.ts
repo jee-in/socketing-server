@@ -40,6 +40,7 @@ export class UsersController {
           nickname: '우아한하늘빛양치기',
           email: 'johndoe@example.com',
           profileImage: 'https://example.com/profile-images/default.png',
+          role: 'user',
           createdAt: '2024-11-12T12:00:00Z',
           updatedAt: '2024-11-12T12:00:00Z',
         },
