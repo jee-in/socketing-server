@@ -1,6 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { IsString, IsOptional, IsInt, IsArray, IsDate } from 'class-validator';
 import { EventDateDto } from './event-date-dto';
+import { UserDto } from 'src/users/dto/user.dto';
 
 export class CreateEventResponseDto {
   @Expose()
@@ -44,6 +45,10 @@ export class CreateEventResponseDto {
   @IsOptional()
   @Type(() => EventDateDto)
   eventDates?: EventDateDto[];
+
+  @Expose()
+  @Type(() => UserDto)
+  user: UserDto;
 
   @Expose()
   @IsDate()

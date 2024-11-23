@@ -15,6 +15,7 @@ import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
 import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
 import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
 import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class EventsService {
@@ -23,11 +24,14 @@ export class EventsService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async findOne(id: string): Promise<CommonResponse<any>> {
     const event = await this.eventRepository
       .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect(
         'event.eventDates',
         'eventDates',
@@ -48,6 +52,11 @@ export class EventsService {
         'eventDates.date',
         'eventDates.createdAt',
         'eventDates.updatedAt',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.profileImage',
+        'user.role',
       ])
       .where('event.id = :id', { id })
       .getOne();
@@ -63,6 +72,7 @@ export class EventsService {
   async findAll(): Promise<CommonResponse<Event[]>> {
     const events = await this.eventRepository
       .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect(
         'event.eventDates',
         'eventDates',
@@ -82,6 +92,11 @@ export class EventsService {
         'eventDates.date',
         'eventDates.createdAt',
         'eventDates.updatedAt',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.profileImage',
+        'user.role',
       ])
       .getMany();
 
@@ -90,6 +105,7 @@ export class EventsService {
 
   async createEvent(
     createEventRequestDto: CreateEventRequestDto,
+    userId: string,
   ): Promise<CommonResponse<CreateEventResponseDto>> {
     const {
       title,
@@ -102,6 +118,10 @@ export class EventsService {
       eventDates,
     } = createEventRequestDto;
 
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
     const event = this.eventRepository.create({
       title,
       thumbnail,
@@ -111,10 +131,12 @@ export class EventsService {
       svg,
       ticketingStartTime,
       eventDates: eventDates?.map((date) => ({ date })),
+      user,
     });
 
     const savedEvent = await this.eventRepository.save(event);
     const eventResponse = plainToInstance(CreateEventResponseDto, savedEvent, {
+      groups: ['basic'],
       excludeExtraneousValues: true,
     });
     return new CommonResponse(eventResponse);
@@ -150,6 +172,7 @@ export class EventsService {
       UpdateEventResponseDto,
       updatedEvent,
       {
+        groups: ['basic'],
         excludeExtraneousValues: true,
       },
     );

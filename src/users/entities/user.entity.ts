@@ -1,4 +1,5 @@
 import { Expose } from 'class-transformer';
+import { Event } from 'src/events/entities/event.entity';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import {
   Entity,
@@ -41,6 +42,11 @@ export class User {
     cascade: true,
   })
   reservations: Reservation[];
+
+  @OneToMany(() => Event, (event) => event.user, {
+    cascade: true,
+  })
+  events: Event[];
 
   @Expose()
   @CreateDateColumn({ type: 'timestamp' })

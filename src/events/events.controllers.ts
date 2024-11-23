@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -55,6 +56,13 @@ export class EventsController {
           ticketingStartTime: '2024-11-23T19:00:00.000Z',
           createdAt: '2024-11-14T22:53:15.873Z',
           updatedAt: '2024-11-15T02:27:46.812Z',
+          user: {
+            id: 'f55235ae-4496-4982-9b0d-24ec3a61d438',
+            nickname: 'new_nickname',
+            email: 'se1620236@naver.com',
+            profileImage: null,
+            role: 'user',
+          },
           eventDates: [
             {
               id: '2221a67e-7d4f-4f7a-be3d-082d4b28ad08',
@@ -120,6 +128,13 @@ export class EventsController {
             ticketingStartTime: '2024-11-23T19:00:00.000Z',
             createdAt: '2024-11-14T23:22:01.274Z',
             updatedAt: '2024-11-14T23:22:01.274Z',
+            user: {
+              id: 'f55235ae-4496-4982-9b0d-24ec3a61d438',
+              nickname: 'new_nickname',
+              email: 'se1620236@naver.com',
+              profileImage: null,
+              role: 'user',
+            },
             eventDates: [
               {
                 id: '016d3b2c-31b3-408a-a8df-a77b8777b0a3',
@@ -145,6 +160,13 @@ export class EventsController {
             ticketingStartTime: '2024-11-23T19:00:00.000Z',
             createdAt: '2024-11-14T23:22:24.170Z',
             updatedAt: '2024-11-14T23:22:24.170Z',
+            user: {
+              id: 'f55235ae-4496-4982-9b0d-24ec3a61d438',
+              nickname: 'new_nickname',
+              email: 'se1620236@naver.com',
+              profileImage: null,
+              role: 'user',
+            },
             eventDates: [
               {
                 id: 'bf8e2326-65d1-47d4-b3ca-cda18a741562',
@@ -247,8 +269,10 @@ export class EventsController {
   @UseGuards(JwtAuthGuard)
   create(
     @Body() createEventRequestDto: CreateEventRequestDto,
+    @Req() req,
   ): Promise<CommonResponse<CreateEventResponseDto>> {
-    return this.eventService.createEvent(createEventRequestDto);
+    const { userId } = req.user;
+    return this.eventService.createEvent(createEventRequestDto, userId);
   }
 
   @ApiOperation({ summary: 'Update an existing event' })

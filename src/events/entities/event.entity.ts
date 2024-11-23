@@ -6,9 +6,11 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToMany,
+  ManyToOne,
 } from 'typeorm';
 import { EventDate } from './event-date.entity';
 import { Expose } from 'class-transformer';
+import { User } from 'src/users/entities/user.entity';
 
 @Entity()
 export class Event {
@@ -47,6 +49,13 @@ export class Event {
   @Expose()
   @OneToMany(() => EventDate, (eventDate) => eventDate.event, { cascade: true })
   eventDates: EventDate[];
+
+  @Expose()
+  @ManyToOne(() => User, (user) => user.reservations, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  user: User;
 
   @Expose()
   @CreateDateColumn({ type: 'timestamp' })
