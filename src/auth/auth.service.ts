@@ -23,7 +23,7 @@ export class AuthService {
   async register(
     registerDto: RegisterRequestDto,
   ): Promise<CommonResponse<RegisterResponseDto>> {
-    const { email, password } = registerDto;
+    const { email, password, role } = registerDto;
 
     const existingUser = await this.userRepository.findOne({
       where: { email },
@@ -67,6 +67,7 @@ export class AuthService {
           nickname: uniqueNickname,
           salt,
           password: hashedPassword,
+          role,
         });
 
         savedUser = await transactionalEntityManager.save(newUser);

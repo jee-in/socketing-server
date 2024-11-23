@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterRequestDto {
   @ApiProperty({
@@ -18,4 +25,15 @@ export class RegisterRequestDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({
+    example: 'user',
+    description: 'The role of the user (e.g., manager, user)',
+    enum: ['manager', 'user'],
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value || 'user') // 기본값 설정
+  @IsString()
+  role: string;
 }
