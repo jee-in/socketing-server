@@ -122,7 +122,6 @@ export class ReservationsService {
 
   async findAllReservation(
     findAllReservationRequestDto: FindAllReservationRequestDto,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     userId: string,
   ): Promise<CommonResponse<FindAllReservationResponseDto[]>> {
     const { eventId } = findAllReservationRequestDto;
@@ -133,8 +132,8 @@ export class ReservationsService {
       .innerJoinAndSelect('reservation.eventDate', 'eventDate')
       .innerJoinAndSelect('eventDate.event', 'event')
       .innerJoinAndSelect('reservation.seat', 'seat')
-      .innerJoinAndSelect('seat.event', 'seatEvent');
-    // .andWhere('user.id = :userId', { userId });
+      .innerJoinAndSelect('seat.event', 'seatEvent')
+      .andWhere('user.id = :userId', { userId });
 
     if (eventId) {
       queryBuilder.andWhere('event.id = :eventId', { eventId });
