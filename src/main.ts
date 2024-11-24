@@ -10,6 +10,7 @@ import {
 import * as bodyParser from 'body-parser';
 import { ERROR_CODES } from './contants/error-codes';
 import { CommonResponse } from './common/dto/common-response.dto';
+import { HttpLoggerInterceptor } from './http-logger.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -51,6 +52,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.useGlobalInterceptors(new HttpLoggerInterceptor());
 
   const config = new DocumentBuilder()
     .setTitle('Socketing API Documentation')
