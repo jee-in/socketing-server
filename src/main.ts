@@ -11,10 +11,13 @@ import * as bodyParser from 'body-parser';
 import { ERROR_CODES } from './contants/error-codes';
 import { CommonResponse } from './common/dto/common-response.dto';
 import { HttpLoggerInterceptor } from './http-logger.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+
+  app.set('trust proxy', true);
 
   app.enableCors({
     origin: '*',
