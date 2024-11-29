@@ -73,6 +73,52 @@ export class UsersController {
     return this.userService.findOne(id);
   }
 
+  @ApiOperation({ summary: 'Retrieve user details by email' })
+  @ApiResponse({
+    status: 200,
+    description: 'User details retrieved successfully',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: '33f01179-9d75-4062-9012-591b54a25f64',
+          nickname: '우아한하늘빛양치기',
+          email: 'johndoe@example.com',
+          profileImage: 'https://example.com/profile-images/default.png',
+          role: 'user',
+          createdAt: '2024-11-12T12:00:00Z',
+          updatedAt: '2024-11-12T12:00:00Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: {
+      example: {
+        code: 7,
+        message: 'User not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Get('email/:email')
+  @HttpCode(200)
+  findOneByEmail(@Param('email') email: string): Promise<CommonResponse<any>> {
+    return this.userService.findOneByEmail(email);
+  }
+
   @ApiOperation({ summary: 'Update user nickname' })
   @ApiBearerAuth()
   @ApiBody({

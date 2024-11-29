@@ -35,6 +35,24 @@ export class UsersService {
     });
   }
 
+  async findOneByEmail(email: string): Promise<CommonResponse<any>> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    return new CommonResponse({
+      id: user.id,
+      email: user.email,
+      nickname: user.nickname,
+      profileImage: user.profileImage,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+  }
+
   async updateNickname(
     id: string,
     updateNicknameDto: UpdateNicknameRequestDto,
