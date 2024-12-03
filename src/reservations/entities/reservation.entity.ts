@@ -1,6 +1,6 @@
 import { EventDate } from 'src/events/entities/event-date.entity';
 import { Seat } from 'src/events/entities/seat.entity';
-import { User } from 'src/users/entities/user.entity';
+
 import {
   CreateDateColumn,
   DeleteDateColumn,
@@ -10,6 +10,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { Order } from './order.entity';
 
 @Entity()
 @Unique(['seat', 'eventDate'])
@@ -17,11 +18,11 @@ export class Reservation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.reservations, {
+  @ManyToOne(() => Order, (order) => order.reservations, {
     onDelete: 'CASCADE',
-    nullable: false,
+    nullable: true,
   })
-  user: User;
+  order: Order | null;
 
   @ManyToOne(() => Seat, (seat) => seat.reservations, {
     onDelete: 'CASCADE',

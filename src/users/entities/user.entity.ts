@@ -1,6 +1,6 @@
-import { Expose } from 'class-transformer';
 import { Event } from 'src/events/entities/event.entity';
-import { Reservation } from 'src/reservations/entities/reservation.entity';
+import { Order } from 'src/reservations/entities/order.entity';
+
 import {
   Entity,
   Column,
@@ -13,19 +13,15 @@ import {
 
 @Entity()
 export class User {
-  @Expose()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Expose()
   @Column({ unique: true })
   nickname: string;
 
-  @Expose()
   @Column({ unique: true })
   email: string;
 
-  @Expose()
   @Column({ nullable: true })
   profileImage: string;
 
@@ -38,21 +34,22 @@ export class User {
   @Column({ nullable: false })
   salt: string;
 
-  @OneToMany(() => Reservation, (reservation) => reservation.user, {
+  @OneToMany(() => Order, (order) => order.user, {
     cascade: true,
   })
-  reservations: Reservation[];
+  orders: Order[];
 
   @OneToMany(() => Event, (event) => event.user, {
     cascade: true,
   })
   events: Event[];
 
-  @Expose()
+  @Column({ type: 'int', unsigned: true, nullable: true, default: 100000 })
+  point: number;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @Expose()
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 

@@ -69,4 +69,29 @@ export const ERROR_CODES = {
     message: 'Reservation not found',
     httpStatus: 404,
   },
+  ORDER_NOT_FOUND: {
+    code: 15,
+    message: 'Order not found',
+    httpStatus: 404,
+  },
+  ORDER_USER_MISMATCH: {
+    code: 16,
+    message: 'The order does not belong to the current user',
+    httpStatus: 403,
+  },
+  EXISTING_ORDER: {
+    code: 17,
+    message: 'The order is already pending or completed for the reservations',
+    httpStatus: 409,
+  },
+  PAYMENT_NOT_FOUND: {
+    code: 18,
+    message: 'Payment not found',
+    httpStatus: 404,
+  },
+  EXISTING_PAYMENT: {
+    code: 19,
+    message: 'This payment is already pending or completed for the order',
+    httpStatus: 409,
+  },
 };
