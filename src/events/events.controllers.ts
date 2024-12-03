@@ -22,15 +22,17 @@ import {
 } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CreateEventRequestDto } from './dto/create-event-request.dto';
 import { CreateEventResponseDto } from './dto/create-event-response.dto';
 import { UpdateEventRequestDto } from './dto/update-event-request.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
+import { CreateManySeatResponseDto } from './dto/create-many-seat-response.dto';
 import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
+import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
 import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
 import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
+import { CreateManySeatRequestDto } from './dto/create-many-seat-request.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -400,6 +402,147 @@ export class EventsController {
     return this.eventService.softDeleteEvent(id);
   }
 
+  @ApiOperation({
+    summary: 'Batch create seats for a specific event',
+    description:
+      'Create multiple seats in different areas for a specific event in a single request.',
+  })
+  @ApiBody({
+    description:
+      'The request body containing multiple areas with their respective seats',
+    type: CreateManySeatRequestDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The seat has been successfully created.',
+    schema: {
+      example: {
+        event: {
+          id: 'event-id-123',
+          title: 'The Phantom of the Opera',
+          thumbnail: 'https://example.com/phantom.jpg',
+          place: 'Seoul Arts Center',
+          cast: 'Kim Min-ji, Lee Jung-ho',
+          ageLimit: 12,
+          svg: '<svg>...</svg>',
+          ticketingStartTime: '2024-12-25T19:30:00Z',
+        },
+        areas: [
+          {
+            id: 'area-id-1',
+            label: 'VIP Section',
+            price: 1000,
+            svg: '<svg>...</svg>',
+            seats: [
+              {
+                id: 'seat-id-1',
+                cx: 100,
+                cy: 200,
+                row: 1,
+                number: 1,
+              },
+              {
+                id: 'seat-id-2',
+                cx: 150,
+                cy: 250,
+                row: 1,
+                number: 2,
+              },
+            ],
+          },
+          {
+            id: 'area-id-2',
+            label: 'General Section',
+            price: 500,
+            svg: '<svg>...</svg>',
+            seats: [
+              {
+                id: 'seat-id-3',
+                cx: 200,
+                cy: 300,
+                row: 2,
+                number: 1,
+              },
+              {
+                id: 'seat-id-4',
+                cx: 250,
+                cy: 350,
+                row: 2,
+                number: 2,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+    schema: {
+      example: {
+        code: 5,
+        message: 'Validation failed',
+        details: [
+          {
+            field: 'cx',
+            message: 'cx must be an integer number',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found.',
+    schema: {
+      example: {
+        code: 9,
+        message: 'Event not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Duplicate seat for the given event.',
+    schema: {
+      example: {
+        code: 10,
+        message:
+          'A seat with the same area, row, number, and event already exists.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Post(':id/seats/batch')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  createManySeat(
+    @Param('id') eventId: string,
+    @Body() body: any,
+  ): Promise<CommonResponse<CreateManySeatResponseDto>> {
+    return this.eventService.createManySeat(eventId, body);
+  }
+
   @ApiOperation({ summary: 'Create a new seat for a specific event' })
   @ApiBearerAuth()
   @ApiBody({
@@ -414,25 +557,18 @@ export class EventsController {
         code: 0,
         message: 'Success',
         data: {
-          id: 'ca46bb87-8889-4241-818d-c7e73f1cadcb',
-          cx: 50,
-          cy: 50,
-          area: 1,
-          row: 1,
-          number: 1,
-          event: {
-            id: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
-            title: 'Music Festival',
-            thumbnail: 'https://example.com/thumbnail.jpg',
-            place: 'Central Park',
-            cast: 'Famous Band',
-            ageLimit: 18,
-            ticketingStartTime: '2024-11-23T19:00:00.000Z',
-            createdAt: '2024-11-14T23:22:01.274Z',
-            updatedAt: '2024-11-14T23:22:01.274Z',
-          },
-          createdAt: '2024-11-15T13:19:39.188Z',
-          updatedAt: '2024-11-15T13:19:39.188Z',
+          id: '62047735-a794-461e-837f-b157f3dc9d60',
+          cx: 516,
+          cy: 76,
+          area: 'be630ba1-c1ae-4e40-a8db-c3d9e950b05a',
+          row: 0,
+          number: 0,
+          event: {},
+          createdAt: '2024-12-01T02:36:38.383Z',
+          updatedAt: '2024-12-01T02:36:38.383Z',
+          svg: null,
+          label: null,
+          price: null,
         },
       },
     },
@@ -528,6 +664,7 @@ export class EventsController {
             area: 1,
             row: 1,
             number: 1,
+            price: 77000,
             createdAt: '2024-11-15T13:19:39.188Z',
             updatedAt: '2024-11-15T13:19:39.188Z',
           },
@@ -538,6 +675,7 @@ export class EventsController {
             area: 1,
             row: 1,
             number: 3,
+            price: 77000,
             createdAt: '2024-11-15T22:35:47.251Z',
             updatedAt: '2024-11-15T22:35:47.251Z',
           },
@@ -580,6 +718,7 @@ export class EventsController {
           area: 1,
           row: 10,
           number: 20,
+          price: 77000,
           createdAt: '2024-11-16T08:00:00.000Z',
           updatedAt: '2024-11-16T08:00:00.000Z',
           event: {
@@ -647,6 +786,7 @@ export class EventsController {
           area: 1,
           row: 1,
           number: 1,
+          price: 77000,
           createdAt: '2024-11-15T13:19:39.188Z',
           updatedAt: '2024-11-16T03:06:27.361Z',
           event: {
@@ -803,6 +943,7 @@ export class EventsController {
             area: 1,
             row: 1,
             number: 3,
+            price: 77000,
             reservations: [
               {
                 id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',
@@ -897,6 +1038,7 @@ export class EventsController {
           area: 1,
           row: 1,
           number: 3,
+          price: 77000,
           reservations: [
             {
               id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',

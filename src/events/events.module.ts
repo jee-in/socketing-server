@@ -6,9 +6,10 @@ import { EventsService } from './events.service';
 import { EventDate } from './entities/event-date.entity';
 import { Seat } from './entities/seat.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Area } from './entities/area.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Event, EventDate, Seat, User])],
+  imports: [TypeOrmModule.forFeature([Event, EventDate, Seat, Area, User])],
   controllers: [EventsController],
   providers: [EventsService],
   exports: [EventsService, TypeOrmModule],

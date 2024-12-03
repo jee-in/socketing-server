@@ -5,23 +5,28 @@ import { Event } from './entities/event.entity';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { ERROR_CODES } from 'src/contants/error-codes';
 import { CustomException } from 'src/exceptions/custom-exception';
-import { CreateEventRequestDto } from './dto/create-event-request.dto';
 import { plainToInstance } from 'class-transformer';
+import { Seat } from './entities/seat.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Area } from './entities/area.entity';
+import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
+import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
+import { EventDto } from './dto/event.dto';
+import { CreateManySeatResponseDto } from './dto/create-many-seat-response.dto';
+import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
+import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
 import { CreateEventResponseDto } from './dto/create-event-response.dto';
 import { UpdateEventRequestDto } from './dto/update-event-request.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
-import { Seat } from './entities/seat.entity';
-import { CreateSeatRequestDto } from './dto/create-seat-request.dto';
-import { CreateSeatResponseDto } from './dto/create-seat-response.dto';
-import { UpdateSeatRequestDto } from './dto/update-seat-request.dto';
-import { UpdateSeatResponseDto } from './dto/update-seat-response.dto';
-import { User } from 'src/users/entities/user.entity';
+import { CreateEventRequestDto } from './dto/create-event-request.dto';
 
 @Injectable()
 export class EventsService {
   constructor(
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+    @InjectRepository(Area)
+    private readonly areaRepository: Repository<Area>,
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
     @InjectRepository(User)
@@ -179,7 +184,6 @@ export class EventsService {
 
     return new CommonResponse(eventResponse);
   }
-
   async softDeleteEvent(id: string): Promise<void> {
     const event = await this.eventRepository.findOne({
       where: { id },
@@ -197,7 +201,7 @@ export class EventsService {
     eventId: string,
     createSeatRequestDto: CreateSeatRequestDto,
   ): Promise<CommonResponse<CreateSeatResponseDto>> {
-    const { cx, cy, area, row, number } = createSeatRequestDto;
+    const { cx, cy, row, number } = createSeatRequestDto;
 
     const event = await this.eventRepository.findOne({
       where: { id: eventId },
@@ -208,21 +212,122 @@ export class EventsService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    const seat = this.seatRepository.create({
-      cx,
-      cy,
-      area,
-      row,
-      number,
-      event,
-    });
-
     try {
+      /* migration code */
+      const newArea = this.areaRepository.create({
+        label: null,
+        price: null,
+        svg: null,
+        event,
+      });
+
+      const savedArea = await this.areaRepository.save(newArea);
+      const areaWithEvent = await this.areaRepository.findOne({
+        where: { id: savedArea.id },
+        relations: ['event'],
+      });
+
+      const seat = this.seatRepository.create({
+        cx,
+        cy,
+        row,
+        number,
+        area: areaWithEvent,
+      });
       const savedSeat = await this.seatRepository.save(seat);
-      const seatResponse = plainToInstance(CreateSeatResponseDto, savedSeat, {
+
+      const seatResponse = plainToInstance(
+        CreateSeatResponseDto,
+        {
+          ...savedSeat,
+          area: areaWithEvent.id,
+          svg: areaWithEvent.svg,
+          label: areaWithEvent.label,
+          price: areaWithEvent.price,
+        },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
+
+      // event data가 담기는지 확인
+      seatResponse.event = plainToInstance(EventDto, savedSeat.area.event, {
         excludeExtraneousValues: true,
       });
+
       return new CommonResponse(seatResponse);
+    } catch (e) {
+      if (e instanceof QueryFailedError && e.driverError.code === '23505') {
+        const duplicateError = ERROR_CODES.DUPLICATE_SEAT;
+        throw new CustomException(
+          duplicateError.code,
+          duplicateError.message,
+          duplicateError.httpStatus,
+        );
+      }
+      throw e;
+    }
+  }
+
+  async createManySeat(
+    eventId: string,
+    createManySeatRequestDto: any,
+  ): Promise<CommonResponse<CreateManySeatResponseDto>> {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      const error = ERROR_CODES.EVENT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    console.log(createManySeatRequestDto);
+
+    const { areas } = createManySeatRequestDto;
+    console.log(areas);
+    // console.log('Raw areas data:', JSON.stringify(areas, null, 2));
+
+    try {
+      const savedAreas = await Promise.all(
+        areas.map(async (area) => {
+          const newArea = this.areaRepository.create({
+            label: area.label,
+            price: area.price,
+            svg: area.svg,
+            event,
+          });
+
+          const savedArea = await this.areaRepository.save(newArea);
+
+          const seatEntities = area.seats.map((seat) =>
+            this.seatRepository.create({
+              ...seat,
+              area: savedArea,
+            }),
+          );
+
+          const savedSeats = await this.seatRepository.save(seatEntities);
+
+          return {
+            ...savedArea,
+            seats: savedSeats,
+          };
+        }),
+      );
+
+      const response = plainToInstance(
+        CreateManySeatResponseDto,
+        {
+          event,
+          areas: savedAreas,
+        },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
+
+      return new CommonResponse(response);
     } catch (e) {
       if (e instanceof QueryFailedError && e.driverError.code === '23505') {
         const duplicateError = ERROR_CODES.DUPLICATE_SEAT;
@@ -298,7 +403,7 @@ export class EventsService {
     seatId: string,
     UpdateSeatRequestDto: UpdateSeatRequestDto,
   ): Promise<CommonResponse<UpdateSeatResponseDto>> {
-    const { cx, cy, area, row, number } = UpdateSeatRequestDto;
+    const { cx, cy, row, number } = UpdateSeatRequestDto;
 
     const event = await this.eventRepository.findOne({
       where: { id: eventId },
@@ -310,7 +415,7 @@ export class EventsService {
     }
 
     const seat = await this.seatRepository.findOne({
-      where: { id: seatId, event: { id: eventId } },
+      // where: { id: seatId, event: { id: eventId } },
       relations: ['event'],
     });
 
@@ -321,7 +426,7 @@ export class EventsService {
 
     seat.cx = cx;
     seat.cy = cy;
-    seat.area = area;
+    // seat.area = area;
     seat.row = row;
     seat.number = number;
 
@@ -334,8 +439,13 @@ export class EventsService {
   }
 
   async deleteSeat(eventId: string, seatId: string) {
+    if (eventId) {
+    }
+    if (seatId) {
+    }
+
     const seat = await this.seatRepository.findOne({
-      where: { id: seatId, event: { id: eventId } },
+      // where: { id: seatId, event: { id: eventId } },
     });
 
     if (!seat) {

@@ -11,6 +11,7 @@ import {
 import { EventDate } from './event-date.entity';
 import { Expose } from 'class-transformer';
 import { User } from 'src/users/entities/user.entity';
+import { Area } from './area.entity';
 
 @Entity()
 export class Event {
@@ -51,7 +52,11 @@ export class Event {
   eventDates: EventDate[];
 
   @Expose()
-  @ManyToOne(() => User, (user) => user.reservations, {
+  @OneToMany(() => Area, (area) => area.event, { cascade: true })
+  areas: Area[];
+
+  @Expose()
+  @ManyToOne(() => User, (user) => user.events, {
     onDelete: 'CASCADE',
     nullable: true,
   })
