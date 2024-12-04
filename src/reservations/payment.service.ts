@@ -133,29 +133,31 @@ export class PaymentsService {
     userId: string,
   ): Promise<CommonResponse<any>> {
     const { orderId, paymentId, newPaymentStatus } = updatePaymentRequestDto;
-
+  
     /* Transaction */
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
-
-    /* Error handling */
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      const error = ERROR_CODES.USER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
+  
     try {
-      const existingPayment = await this.paymentRepository.findOne({
-        where: { id: paymentId },
-      });
+      /* Error handling */
+      const user = await queryRunner.manager.findOne(User, { where: { id: userId } });
+      if (!user) {
+        const error = ERROR_CODES.USER_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+  
+      const existingPayment = await queryRunner.manager.findOne(Payment, { where: { id: paymentId } });
       if (!existingPayment) {
         const error = ERROR_CODES.PAYMENT_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-
-      // 연결된 reservation 없는지 확인하는 예외 처리도 추가하기
-
+  
+      if (user.point < existingPayment.paymentAmount) {
+        const error = ERROR_CODES.INSUFFICIENT_BALANCE;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+  
+      // 이미 complete 상태인데 complete 요청이 들어오면 예외 처리
       const originalPaymentStatus = existingPayment.paymentStatus;
       if (
         originalPaymentStatus === PaymentStatus.COMPLETED &&
@@ -164,29 +166,18 @@ export class PaymentsService {
         const error = ERROR_CODES.INVALID_PAYMENT_REQUEST;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-
+  
+      // 포인트 차감
+      user.point -= existingPayment.paymentAmount;
+      await queryRunner.manager.save(user);
+  
       // Payment 업데이트
       existingPayment.paymentStatus = newPaymentStatus;
       existingPayment.paidAt = new Date();
-      const updatedPayment = await this.paymentRepository.save(existingPayment);
-
-      // PaymentStatus가 COMPLETED일 때 포인트 차감
-      if (updatedPayment.paymentStatus === PaymentStatus.COMPLETED) {
-        if (user.point >= updatedPayment.paymentAmount) {
-          user.point -= updatedPayment.paymentAmount;
-          await this.userRepository.save(user);
-        } else {
-          const error = ERROR_CODES.INSUFFICIENT_BALANCE;
-          throw new CustomException(
-            error.code,
-            error.message,
-            error.httpStatus,
-          );
-        }
-      }
-
-      const selectedPayment = await this.paymentRepository
-        .createQueryBuilder('payment')
+      await queryRunner.manager.save(existingPayment);
+  
+      const selectedPayment = await queryRunner.manager
+        .createQueryBuilder(Payment, 'payment')
         .leftJoinAndSelect('payment.order', 'order')
         .leftJoinAndSelect('order.user', 'user')
         .leftJoinAndSelect('order.reservations', 'reservation')
@@ -232,14 +223,9 @@ export class PaymentsService {
         .andWhere('order.id = :orderId', { orderId })
         .andWhere('payment.id = :paymentId', { paymentId })
         .getRawMany();
-
-      console.log(selectedPayment);
-
+  
       // 응답 데이터 구성
-      // 공통 데이터 추출 (첫 번째 레코드 기준)
       const firstPayment = selectedPayment[0];
-
-      // Reservation 데이터 구성
       const reservations = selectedPayment.map((payment) => ({
         reservationId: payment.reservationid,
         seatId: payment.seatid,
@@ -251,8 +237,7 @@ export class PaymentsService {
         seatAreaLabel: payment.arealabel,
         seatAreaPrice: payment.areaprice,
       }));
-
-      // UpdatePaymentResponseDto 데이터 구성
+  
       const responseData = {
         orderId: firstPayment.orderid,
         orderCreatedAt: firstPayment.ordercreatedat || null,
@@ -278,14 +263,12 @@ export class PaymentsService {
         eventAgeLimit: firstPayment.eventagelimit || null,
         reservations: reservations,
       };
-      // console.log(responseData);
-
+  
       await queryRunner.commitTransaction();
       return new CommonResponse(responseData);
     } catch (e) {
-      console.error(e);
-      // 에러 처리
       await queryRunner.rollbackTransaction();
+      throw e;
     } finally {
       await queryRunner.release();
     }
