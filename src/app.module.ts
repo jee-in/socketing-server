@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { DataSource } from 'typeorm';
 import { EventsModule } from './events/events.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { ManagersModule } from './manger/manager.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     AuthModule,
     EventsModule,
     ReservationsModule,
+    ManagersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
