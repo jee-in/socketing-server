@@ -1,22 +1,15 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   Param,
-  Post,
-  Put,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiOperation,
-  ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -29,51 +22,51 @@ import { ManagersService } from './manager.service';
 export class ManagersController {
   constructor(private readonly managerService: ManagersService) {}
 
-  // @ApiOperation({ summary: 'Retrieve a specific event by ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'The event details.',
-  //   schema: {
-  //     example: {
-  //       code: 0,
-  //       message: 'Success',
-  //       data: {},
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 404,
-  //   description: 'Event not found.',
-  //   schema: {
-  //     example: {
-  //       code: 9,
-  //       message: 'Event not found',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 500,
-  //   description: 'Internal server error',
-  //   schema: {
-  //     example: {
-  //       code: 6,
-  //       message: 'Internal server error',
-  //     },
-  //   },
-  // })
-  // @ApiBearerAuth()
-  // @Get(':id')
-  // @HttpCode(200)
-  // @UseGuards(JwtAuthGuard)
-  // findOne(
-  //   @Param('id') eventId: string,
-  //   @Query('eventDateId') eventDateId: string,
-  //   @Req() req: any,
-  // ): Promise<CommonResponse<any>> {
-  //   console.log(req.user);
-  //   const { userId } = req.user;
-  //   return this.managerService.findOne(userId, eventId, eventDateId);
-  // }
+  @ApiOperation({ summary: 'Retrieve a specific event by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'The event details.',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {},
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found.',
+    schema: {
+      example: {
+        code: 9,
+        message: 'Event not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Get(':id')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  findOne(
+    @Param('id') eventId: string,
+    @Query('eventDateId') eventDateId: string,
+    @Req() req: any,
+  ): Promise<CommonResponse<any>> {
+    console.log(req.user);
+    const { userId } = req.user;
+    return this.managerService.findOne(userId, eventId, eventDateId);
+  }
 
   @ApiOperation({ summary: 'Retrieve all events' })
   @ApiResponse({
