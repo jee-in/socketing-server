@@ -143,7 +143,7 @@ export class PaymentsController {
               seatRow: 2,
               seatNumber: 1,
               seatAreaId: '659a8a7b-7551-4fef-ac40-05042feca06c',
-              seatAeaLabel: null,
+              seatAreaLabel: null,
               seatAreaPrice: 100,
             },
           ],

@@ -248,7 +248,7 @@ export class PaymentsService {
         seatRow: payment.seatrow,
         seatNumber: payment.seatnumber,
         seatAreaId: payment.areaid,
-        seatAeaLabel: payment.arealabel,
+        seatAreaLabel: payment.arealabel,
         seatAreaPrice: payment.areaprice,
       }));
 
