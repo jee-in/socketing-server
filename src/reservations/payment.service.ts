@@ -35,73 +35,57 @@ export class PaymentsService {
     userId: string,
   ): Promise<CommonResponse<CreatePaymentResponseDto>> {
     const { orderId, paymentMethod, totalAmount } = createPaymentRequestDto;
-    //console.log(orderId, paymentMethod, totalAmount);
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      const error = ERROR_CODES.USER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: ['reservations'],
-    });
-    console.log(order);
-    if (!order) {
-      const error = ERROR_CODES.ORDER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-    /* 주문자가 로그인한 사람과 같은지 검사하는 코드 */
-    // if (order.user.id != user.id) {
-    //   const error = ERROR_CODES.ORDER_USER_MISMATCH;
-    //   throw new CustomException(error.code, error.message, error.httpStatus);
-    // }
-
-    const error = ERROR_CODES.RESERVATION_NOT_FOUND;
-    if (!order.reservations) {
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    } else {
-      order.reservations.forEach((reservation) => {
-        if (!reservation) {
-          throw new CustomException(
-            error.code,
-            error.message,
-            error.httpStatus,
-          );
-        }
-      });
-    }
-
-    const payment = await this.paymentRepository.findOne({
-      where: {
-        order: { id: orderId },
-        paymentStatus: Not(PaymentStatus.CANCELED),
-      },
-      relations: ['order'],
-    });
-    if (payment) {
-      const error = ERROR_CODES.EXISTING_PAYMENT;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
     try {
-      const newPayment = this.paymentRepository.create({
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+      });
+      if (!user) {
+        const error = ERROR_CODES.USER_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { id: orderId },
+        relations: ['reservations'],
+      });
+      if (!order) {
+        const error = ERROR_CODES.ORDER_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      if (!order.reservations || order.reservations.length === 0) {
+        const error = ERROR_CODES.RESERVATION_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      const existingPayment = await queryRunner.manager.findOne(Payment, {
+        where: {
+          order: { id: orderId },
+          paymentStatus: Not(PaymentStatus.CANCELED),
+        },
+        relations: ['order'],
+      });
+      if (existingPayment) {
+        const error = ERROR_CODES.EXISTING_PAYMENT;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      const newPayment = queryRunner.manager.create(Payment, {
         order,
         paymentMethod,
         paymentAmount: totalAmount,
         paymentStatus: PaymentStatus.PENDING,
       });
 
-      const savedPayment = await this.paymentRepository.save(newPayment);
+      const savedPayment = await queryRunner.manager.save(Payment, newPayment);
 
       const paymentInstance = plainToInstance(PaymentDto, savedPayment, {
         excludeExtraneousValues: true,
       });
-      console.log(paymentInstance);
 
       const orderInstance = plainToInstance(OrderDto, order, {
         excludeExtraneousValues: true,
@@ -121,8 +105,8 @@ export class PaymentsService {
       return new CommonResponse(paymentResponse);
     } catch (e) {
       console.log(e);
-      // 예외 처리
       await queryRunner.rollbackTransaction();
+      throw e; // 트랜잭션 처리 중 발생한 예외를 상위로 던짐
     } finally {
       await queryRunner.release();
     }
@@ -133,30 +117,34 @@ export class PaymentsService {
     userId: string,
   ): Promise<CommonResponse<any>> {
     const { orderId, paymentId, newPaymentStatus } = updatePaymentRequestDto;
-  
+
     /* Transaction */
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
-  
+
     try {
       /* Error handling */
-      const user = await queryRunner.manager.findOne(User, { where: { id: userId } });
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+      });
       if (!user) {
         const error = ERROR_CODES.USER_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-  
-      const existingPayment = await queryRunner.manager.findOne(Payment, { where: { id: paymentId } });
+
+      const existingPayment = await queryRunner.manager.findOne(Payment, {
+        where: { id: paymentId },
+      });
       if (!existingPayment) {
         const error = ERROR_CODES.PAYMENT_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-  
+
       if (user.point < existingPayment.paymentAmount) {
         const error = ERROR_CODES.INSUFFICIENT_BALANCE;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-  
+
       // 이미 complete 상태인데 complete 요청이 들어오면 예외 처리
       const originalPaymentStatus = existingPayment.paymentStatus;
       if (
@@ -166,16 +154,16 @@ export class PaymentsService {
         const error = ERROR_CODES.INVALID_PAYMENT_REQUEST;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-  
+
       // 포인트 차감
       user.point -= existingPayment.paymentAmount;
       await queryRunner.manager.save(user);
-  
+
       // Payment 업데이트
       existingPayment.paymentStatus = newPaymentStatus;
       existingPayment.paidAt = new Date();
       await queryRunner.manager.save(existingPayment);
-  
+
       const selectedPayment = await queryRunner.manager
         .createQueryBuilder(Payment, 'payment')
         .leftJoinAndSelect('payment.order', 'order')
@@ -223,7 +211,7 @@ export class PaymentsService {
         .andWhere('order.id = :orderId', { orderId })
         .andWhere('payment.id = :paymentId', { paymentId })
         .getRawMany();
-  
+
       // 응답 데이터 구성
       const firstPayment = selectedPayment[0];
       const reservations = selectedPayment.map((payment) => ({
@@ -237,7 +225,7 @@ export class PaymentsService {
         seatAreaLabel: payment.arealabel,
         seatAreaPrice: payment.areaprice,
       }));
-  
+
       const responseData = {
         orderId: firstPayment.orderid,
         orderCreatedAt: firstPayment.ordercreatedat || null,
@@ -263,7 +251,7 @@ export class PaymentsService {
         eventAgeLimit: firstPayment.eventagelimit || null,
         reservations: reservations,
       };
-  
+
       await queryRunner.commitTransaction();
       return new CommonResponse(responseData);
     } catch (e) {
