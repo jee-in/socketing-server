@@ -172,6 +172,7 @@ export class PaymentsService {
       });
     }
 
+    console.log(paymentId);
     const payment = await this.paymentRepository.findOne({
       where: { id: paymentId },
       relations: ['order'],
@@ -183,6 +184,7 @@ export class PaymentsService {
 
     try {
       payment.paymentStatus = newPaymentStatus;
+      payment.paidAt = new Date();
 
       const updatedPayment = await this.paymentRepository.save(payment);
 

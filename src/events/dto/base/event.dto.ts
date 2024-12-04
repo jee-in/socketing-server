@@ -1,6 +1,12 @@
 import { Expose } from 'class-transformer';
+import { IsOptional, IsString } from 'class-validator';
 
 export class EventDto {
+  @Expose()
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @Expose()
   title: string;
 
@@ -17,8 +23,10 @@ export class EventDto {
   ageLimit?: number;
 
   @Expose()
+  @IsOptional()
   svg?: string;
 
   @Expose()
+  @IsOptional()
   ticketingStartTime?: Date;
 }

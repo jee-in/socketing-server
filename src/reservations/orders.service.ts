@@ -15,6 +15,9 @@ import { CreateOrderResponseDto } from './dto/create-order-response.dto';
 import { UserWithPoint } from 'src/users/dto/user-with-point.dto';
 import { EventDto } from 'src/events/dto/base/event.dto';
 import { BasicSeatWithAreaDto } from 'src/events/dto/basic-seat-with-area.dot';
+import { FindAllOrderRequestDto } from './dto/find-all-order-request.dto';
+import { FindAllOrderResponseDto } from './dto/find-all-order-response.dto';
+import { FindOneOrderResponseDto } from './dto/find-one-order-response.dto';
 
 @Injectable()
 export class OrdersService {
@@ -167,5 +170,220 @@ export class OrdersService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async findAllOrders(
+    findAllOrderRequestDto: FindAllOrderRequestDto,
+    userId: string,
+  ): Promise<CommonResponse<FindAllOrderResponseDto[]>> {
+    const { eventId } = findAllOrderRequestDto;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .innerJoinAndSelect('order.user', 'user')
+      .innerJoinAndSelect('order.reservations', 'reservation')
+      .innerJoinAndSelect('reservation.eventDate', 'eventDate')
+      .innerJoinAndSelect('eventDate.event', 'event')
+      .innerJoinAndSelect('reservation.seat', 'seat')
+      .innerJoinAndSelect('seat.area', 'area')
+      .innerJoinAndSelect('order.payments', 'payment')
+      .andWhere('order.deletedAt IS NULL')
+      .andWhere("payment.paymentStatus = 'completed'");
+    if (eventId) {
+      queryBuilder.andWhere('event.id = :eventId', { eventId });
+    }
+
+    if (user.role == 'user') {
+      queryBuilder.andWhere('user.id = :userId', { userId });
+    }
+
+    console.log(queryBuilder.getQuery());
+
+    const selectedOrders = await queryBuilder
+      .select([
+        'order.id AS orderId',
+        'order.createdAt AS orderCreatedAt',
+        'user.id AS userId',
+        'user.nickname AS userNickname',
+        'user.email AS userEmail',
+        'user.profileImage AS userProfileImage',
+        'user.role AS userRole',
+        'eventDate.id AS eventDateId',
+        'eventDate.date AS eventDateDate',
+        'event.id AS eventId',
+        'event.title AS eventTitle',
+        'event.thumbnail AS eventThumbnail',
+        'event.place AS eventPlace',
+        'event.cast AS eventCast',
+        'event.ageLimit AS eventAgeLimit',
+        'seat.id AS seatId',
+        'seat.cx AS seatCx',
+        'seat.cy AS seatCy',
+        'seat.row AS seatRow',
+        'seat.number AS seatNumber',
+        'area.id AS areaId',
+        'area.label AS areaLabel',
+        'area.price AS areaPrice',
+      ])
+      .getRawMany();
+    console.log(selectedOrders);
+
+    const groupedOrders = selectedOrders.reduce((acc, order) => {
+      const orderId = order.orderid;
+
+      // 현재 orderId로 그룹화된 데이터가 없으면 초기화
+      if (!acc[orderId]) {
+        acc[orderId] = {
+          orderId,
+          orderCreatedAt: order.ordercreatedat,
+          userId: order.userid,
+          userNickname: order.usernickname,
+          userEmail: order.useremail,
+          userProfileImage: order.userprofileimage,
+          userRole: order.userrole,
+          eventDateId: order.eventdateid,
+          eventDate: order.eventdatedate,
+          eventId: order.eventid,
+          eventTitle: order.eventtitle,
+          eventThumbnail: order.eventthumbnail,
+          eventPlace: order.eventplace,
+          eventCast: order.eventcast,
+          eventAgeLimit: order.eventagelimit,
+          reservations: [],
+        };
+      }
+
+      // 현재 orderId에 reservation 추가
+      acc[orderId].reservations.push({
+        reservationId: order.reservationid,
+        seatId: order.seatid,
+        seatCx: order.seatcx,
+        seatCy: order.seatcy,
+        seatRow: order.seatrow,
+        seatNumber: order.seatnumber,
+        seatAreaId: order.areaid,
+        seatAreaLabel: order.arealabel,
+        seatAreaPrice: order.areaprice,
+      });
+
+      return acc;
+    }, {});
+
+    // Object.values를 사용해 배열로 변환
+    const groupedOrdersArray = Object.values(groupedOrders);
+    const onrderInstances = plainToInstance(
+      FindAllOrderResponseDto,
+      groupedOrdersArray,
+      { excludeExtraneousValues: true },
+    );
+
+    return new CommonResponse(onrderInstances);
+  }
+
+  async findOneOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<CommonResponse<FindOneOrderResponseDto>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .innerJoinAndSelect('order.user', 'user')
+      .innerJoinAndSelect('order.reservations', 'reservation')
+      .innerJoinAndSelect('reservation.eventDate', 'eventDate')
+      .innerJoinAndSelect('eventDate.event', 'event')
+      .innerJoinAndSelect('reservation.seat', 'seat')
+      .innerJoinAndSelect('seat.area', 'area')
+      .innerJoinAndSelect('order.payments', 'payment')
+      .andWhere('order.deletedAt IS NULL')
+      .andWhere("payment.paymentStatus = 'completed'")
+      .andWhere('order.id = :orderId', { orderId });
+
+    if (user.role == 'user') {
+      queryBuilder.andWhere('user.id = :userId', { userId });
+    }
+
+    console.log(queryBuilder.getQuery());
+
+    const selectedOrder = await queryBuilder
+      .select([
+        'order.id AS orderId',
+        'order.createdAt AS orderCreatedAt',
+        'user.id AS userId',
+        'user.nickname AS userNickname',
+        'user.email AS userEmail',
+        'user.profileImage AS userProfileImage',
+        'user.role AS userRole',
+        'eventDate.id AS eventDateId',
+        'eventDate.date AS eventDateDate',
+        'event.id AS eventId',
+        'event.title AS eventTitle',
+        'event.thumbnail AS eventThumbnail',
+        'event.place AS eventPlace',
+        'event.cast AS eventCast',
+        'event.ageLimit AS eventAgeLimit',
+        'seat.id AS seatId',
+        'seat.cx AS seatCx',
+        'seat.cy AS seatCy',
+        'seat.row AS seatRow',
+        'seat.number AS seatNumber',
+        'area.id AS areaId',
+        'area.label AS areaLabel',
+        'area.price AS areaPrice',
+      ])
+      .getRawOne();
+
+    console.log(selectedOrder);
+    if (!selectedOrder) {
+      return new CommonResponse(null);
+    }
+
+    // ...selectedOrder
+    const orderData = {
+      orderId,
+      orderCreatedAt: selectedOrder.ordercreatedat,
+      userId: selectedOrder.userid,
+      userNickname: selectedOrder.usernickname,
+      userEmail: selectedOrder.useremail,
+      userProfileImage: selectedOrder.userprofileimage,
+      userRole: selectedOrder.userrole,
+      eventDateId: selectedOrder.eventdateid,
+      eventDate: selectedOrder.eventdatedate,
+      eventId: selectedOrder.eventid,
+      eventTitle: selectedOrder.eventtitle,
+      eventThumbnail: selectedOrder.eventthumbnail,
+      eventPlace: selectedOrder.eventplace,
+      eventCast: selectedOrder.eventcast,
+      eventAgeLimit: selectedOrder.eventagelimit,
+      reservations: [
+        {
+          reservationId: selectedOrder.reservationid,
+          seatId: selectedOrder.seatid,
+          seatCx: selectedOrder.seatcx,
+          seatCy: selectedOrder.seatcy,
+          seatRow: selectedOrder.seatrow,
+          seatNumber: selectedOrder.seatnumber,
+          seatAreaId: selectedOrder.areaid,
+          seatAreaLabel: selectedOrder.arealabel,
+          seatAreaPrice: selectedOrder.areaprice,
+        },
+      ],
+    };
+
+    const orderInstance = plainToInstance(FindOneOrderResponseDto, orderData, {
+      excludeExtraneousValues: true,
+    });
+
+    return new CommonResponse(orderInstance);
   }
 }

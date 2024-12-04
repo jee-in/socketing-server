@@ -1,28 +1,28 @@
 import { Expose } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
 
 export class BasicSeatWithAreaDto {
-  @ApiProperty({
-    description: 'Row number of the seat',
-    example: 1,
-    type: Number,
-  })
+  @Expose()
+  id: number;
+
+  @Expose()
+  @IsOptional()
+  cx?: number;
+
+  @Expose()
+  @IsOptional()
+  cy?: number;
+
   @Expose()
   row: number;
 
-  @ApiProperty({
-    description: 'Number of the seat',
-    example: 2,
-    type: Number,
-  })
   @Expose()
   number: number;
 
-  @ApiProperty({
-    description: 'Area label of the seat',
-    example: 2,
-    type: String,
-  })
   @Expose()
   label: string;
+
+  @Expose()
+  @IsOptional()
+  price?: number;
 }

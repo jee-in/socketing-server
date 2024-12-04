@@ -1,1 +1,8 @@
-export class OrderDto {}
+import { Expose } from 'class-transformer';
+import { IsString } from 'class-validator';
+
+export class OrderDto {
+  @Expose()
+  @IsString()
+  id: string;
+}

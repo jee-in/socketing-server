@@ -9,6 +9,8 @@ import { Order } from './entities/order.entity';
 import { Payment } from './entities/payment.entity';
 import { PaymentsService } from './payment.service';
 import { PaymentsController } from './payment.controller';
+import { OrdersController } from './orders.controller';
+import { OrdersService } from './orders.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -22,8 +24,8 @@ import { PaymentsController } from './payment.controller';
       Payment,
     ]),
   ],
-  controllers: [PaymentsController],
-  providers: [PaymentsService],
-  exports: [PaymentsService, TypeOrmModule],
+  controllers: [PaymentsController, OrdersController],
+  providers: [PaymentsService, OrdersService],
+  exports: [PaymentsService, OrdersService, TypeOrmModule],
 })
 export class ReservationsModule {}
