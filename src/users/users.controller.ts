@@ -287,4 +287,45 @@ export class UsersController {
   softDelete(@Param('id') id: string): Promise<any> {
     return this.userService.softDelete(id);
   }
+
+  @ApiOperation({ summary: 'Retrieve user points by email' })
+  @ApiResponse({
+    status: 200,
+    description: 'User points retrieved successfully',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {
+          id: '33f01179-9d75-4062-9012-591b54a25f64',
+          point: 100000,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    schema: {
+      example: {
+        code: 7,
+        message: 'User not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @Get('/:id/points')
+  @HttpCode(200)
+  findUserPoints(@Param('id') id: string): Promise<CommonResponse<any>> {
+    return this.userService.findUserPoints(id);
+  }
 }

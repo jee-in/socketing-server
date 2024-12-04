@@ -23,4 +23,12 @@ export class PaymentDto {
   @Expose()
   @IsOptional()
   paidAt?: Date | null;
+
+  @Expose()
+  @IsOptional()
+  createdAt: Date | null;
+
+  @Expose()
+  @IsOptional()
+  updatedAt: Date | null;
 }

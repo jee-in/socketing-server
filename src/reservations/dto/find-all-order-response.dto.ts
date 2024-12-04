@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose } from 'class-transformer';
 import { IsString } from 'class-validator';
 import { PlainReservationDto } from './plain-reservation-dto';
 

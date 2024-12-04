@@ -119,4 +119,17 @@ export class UsersService {
 
     await this.userRepository.restore(id);
   }
+
+  async findUserPoints(id: string): Promise<CommonResponse<any>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      const error = ERROR_CODES.USER_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    return new CommonResponse({
+      id: user.id,
+      point: user.point,
+    });
+  }
 }

@@ -120,7 +120,9 @@ export class PaymentsService {
 
       await queryRunner.commitTransaction();
       return new CommonResponse(paymentResponse);
-    } catch {
+    } catch (e) {
+      console.log(e);
+      // 예외 처리
       await queryRunner.rollbackTransaction();
     } finally {
       await queryRunner.release();
@@ -133,9 +135,11 @@ export class PaymentsService {
   ): Promise<CommonResponse<UpdatePaymentResponseDto>> {
     const { orderId, paymentId, newPaymentStatus } = updatePaymentRequestDto;
 
+    /* Transaction */
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
 
+    /* Error handling */
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       const error = ERROR_CODES.USER_NOT_FOUND;
@@ -172,26 +176,57 @@ export class PaymentsService {
       });
     }
 
-    console.log(paymentId);
-    const payment = await this.paymentRepository.findOne({
-      where: { id: paymentId },
-      relations: ['order'],
-    });
-    if (!payment) {
-      const error = ERROR_CODES.PAYMENT_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
     try {
+      const payment = await this.paymentRepository.findOne({
+        where: { id: paymentId },
+        relations: ['order'],
+      });
+      if (!payment) {
+        const error = ERROR_CODES.PAYMENT_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      const originalPaymentStatus = payment.paymentStatus;
+      if (originalPaymentStatus == PaymentStatus.COMPLETED) {
+        if (
+          newPaymentStatus != PaymentStatus.REFUNDED ||
+          newPaymentStatus != PaymentStatus.REFUNDED
+        ) {
+          const error = ERROR_CODES.INVALID_PAYMENT_REQUEST;
+          throw new CustomException(
+            error.code,
+            error.message,
+            error.httpStatus,
+          );
+        }
+      }
+
       payment.paymentStatus = newPaymentStatus;
       payment.paidAt = new Date();
 
       const updatedPayment = await this.paymentRepository.save(payment);
+      //console.log(updatedPayment);
+      // 관련 테이블 updatedAt 시간도 업데이트해주기
+
+      if (payment.paymentStatus == PaymentStatus.COMPLETED) {
+        if (user.point >= payment.paymentAmount) {
+          user.point = user.point - payment.paymentAmount;
+          const updatedUser = await this.userRepository.save(user);
+          console.log(updatedUser.point);
+        } else {
+          const error = ERROR_CODES.INSUFFICIENT_BALANCE;
+          throw new CustomException(
+            error.code,
+            error.message,
+            error.httpStatus,
+          );
+        }
+      }
 
       const paymentInstance = plainToInstance(PaymentDto, updatedPayment, {
         excludeExtraneousValues: true,
       });
-      console.log(paymentInstance);
+      //console.log(paymentInstance);
 
       const orderInstance = plainToInstance(OrderDto, order, {
         excludeExtraneousValues: true,
@@ -208,7 +243,9 @@ export class PaymentsService {
 
       await queryRunner.commitTransaction();
       return new CommonResponse(paymentResponse);
-    } catch {
+    } catch (e) {
+      console.error(e);
+      // 에러 처리
       await queryRunner.rollbackTransaction();
     } finally {
       await queryRunner.release();
