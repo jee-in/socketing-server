@@ -19,7 +19,6 @@ import { PaymentsService } from './payment.service';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { CreatePaymentResponseDto } from './dto/create-payment-response.dto';
 import { UpdatePaymentRequestDto } from './dto/update-payment-request.dto';
-import { UpdatePaymentResponseDto } from './dto/update-payment-response.dto';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -113,20 +112,41 @@ export class PaymentsController {
         code: 0,
         message: 'Success',
         data: {
-          payment: {
-            id: 'e9686aa0-d992-41ea-8743-1ec08a7c0ace',
-            paymentAmount: 150000,
-            paymentMethod: 'socket_pay',
-            paymentStatus: 'completed',
-            paidAt: '2024-12-04T03:47:26.855Z',
-            createdAt: '2024-12-03T15:03:18.621Z',
-            updatedAt: '2024-12-03T18:47:26.860Z',
-          },
-          order: {
-            id: '51733a36-83ac-4bb7-9a3b-bfc04ea1a65c',
-            createdAt: '2024-12-03T15:02:54.255Z',
-            updatedAt: '2024-12-03T15:02:54.255Z',
-          },
+          orderId: '51733a36-83ac-4bb7-9a3b-bfc04ea1a65c',
+          orderCreatedAt: '2024-12-03T15:02:54.255Z',
+          orderUpdatedAt: '2024-12-03T15:02:54.255Z',
+          orderDeletedAt: null,
+          paymentId: 'e9686aa0-d992-41ea-8743-1ec08a7c0ace',
+          paymentStatus: 'completed',
+          paymentMethod: 'socket_pay',
+          paymentAmount: 150000,
+          paymentPaidAt: '2024-12-04T16:15:34.658Z',
+          paymentCreatedAt: '2024-12-03T15:03:18.621Z',
+          paymentUpdatedAt: '2024-12-04T07:15:34.664Z',
+          userId: '477a51da-69f0-459f-ad7a-810623a32cdb',
+          userNickname: '찬란한무지개고양이',
+          userEmail: 'jeein@jungle.com',
+          userProfileImage: null,
+          userRole: 'user',
+          eventTitle: '배치 테스트',
+          eventDate: '2024-12-10T05:17:00.000Z',
+          eventThumbnail: 'ㅇ',
+          eventPlace: 'ㅇ',
+          eventCast: 'ㅇ',
+          eventAgeLimit: null,
+          reservations: [
+            {
+              reservationId: '7113cb5b-2bd2-40b6-88d7-d6645ca4f291',
+              seatId: 'd18a9cbc-3ded-4513-8390-cb758eeef60a',
+              seatCx: 516,
+              seatCy: 76,
+              seatRow: 2,
+              seatNumber: 1,
+              seatAreaId: '659a8a7b-7551-4fef-ac40-05042feca06c',
+              seatAeaLabel: null,
+              seatAreaPrice: 100,
+            },
+          ],
         },
       },
     },
@@ -142,8 +162,48 @@ export class PaymentsController {
     },
   })
   @ApiResponse({
+    status: 404,
+    description: 'Payment not found',
+    schema: {
+      example: {
+        code: 18,
+        message: 'Payment not found',
+      },
+    },
+  })
+  @ApiResponse({
     status: 409,
-    //
+    description: 'This payment is already pending or completed for the order',
+    schema: {
+      example: {
+        code: 19,
+        message: 'This payment is already pending or completed for the order',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 402,
+    description:
+      'This payment is not acceptable because of insufficient balance',
+    schema: {
+      example: {
+        code: 20,
+        message:
+          'This payment is not acceptable because of insufficient balance',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'This payment is not acceptable because of the invalid payment request',
+    schema: {
+      example: {
+        code: 21,
+        message:
+          'This payment is not acceptable because of the invalid payment request',
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -162,7 +222,7 @@ export class PaymentsController {
   update(
     @Body() body: UpdatePaymentRequestDto,
     @Req() req,
-  ): Promise<CommonResponse<UpdatePaymentResponseDto>> {
+  ): Promise<CommonResponse<any>> {
     const { userId } = req.user;
     return this.paymentService.updatePayment(body, userId);
   }
