@@ -194,14 +194,12 @@ export class OrdersService {
       .innerJoinAndSelect('seat.area', 'area')
       .innerJoinAndSelect('order.payments', 'payment')
       .andWhere('order.deletedAt IS NULL')
-      .andWhere("payment.paymentStatus = 'completed'");
+      .andWhere("payment.paymentStatus = 'completed'")
+      .andWhere('user.id = :userId', { userId });
     if (eventId) {
       queryBuilder.andWhere('event.id = :eventId', { eventId });
     }
-
-    if (user.role == 'user') {
-      queryBuilder.andWhere('user.id = :userId', { userId });
-    }
+    queryBuilder.orderBy('order.createdAt', 'DESC');
 
     console.log(queryBuilder.getQuery());
 
@@ -305,13 +303,10 @@ export class OrdersService {
       .innerJoinAndSelect('reservation.seat', 'seat')
       .innerJoinAndSelect('seat.area', 'area')
       .innerJoinAndSelect('order.payments', 'payment')
+      .andWhere('user.id = :userId', { userId })
       .andWhere('order.deletedAt IS NULL')
       .andWhere("payment.paymentStatus = 'completed'")
       .andWhere('order.id = :orderId', { orderId });
-
-    if (user.role == 'user') {
-      queryBuilder.andWhere('user.id = :userId', { userId });
-    }
 
     console.log(queryBuilder.getQuery());
 

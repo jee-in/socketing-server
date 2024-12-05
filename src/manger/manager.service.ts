@@ -37,7 +37,7 @@ export class ManagersService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    if (user.role != 'admin') {
+    if (user.role != 'manager') {
       const error = ERROR_CODES.UNAUTHORIZED;
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
@@ -143,7 +143,7 @@ export class ManagersService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    if (user.role != 'admin') {
+    if (user.role != 'manager') {
       const error = ERROR_CODES.UNAUTHORIZED;
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
