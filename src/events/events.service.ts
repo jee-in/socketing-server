@@ -108,6 +108,54 @@ export class EventsService {
     return new CommonResponse(events);
   }
 
+  async findOneDetailed(id: string): Promise<CommonResponse<any>> {
+    const event = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.eventDates', 'eventDate')
+      .leftJoinAndSelect('event.areas', 'area')
+      .leftJoinAndSelect('area.seats', 'seat')
+      .andWhere('event.id = :id', { id })
+      .select([
+        'event.id',
+        'event.title',
+        'event.thumbnail',
+        'event.place',
+        'event.cast',
+        'event.ageLimit',
+        'event.svg',
+        'event.ticketingStartTime',
+        'event.createdAt',
+        'event.updatedAt',
+        'eventDate.id',
+        'eventDate.date',
+        'eventDate.createdAt',
+        'eventDate.updatedAt',
+        'area.id',
+        'area.label',
+        'area.price',
+        'area.svg',
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.row',
+        'seat.number',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.profileImage',
+        'user.role',
+      ])
+      .getOne();
+
+    if (!event) {
+      const error = ERROR_CODES.EVENT_NOT_FOUND;
+      throw new CustomException(error.code, error.message, error.httpStatus);
+    }
+
+    return new CommonResponse(event);
+  }
+
   async createEvent(
     createEventRequestDto: CreateEventRequestDto,
     userId: string,
@@ -194,9 +242,12 @@ export class EventsService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
+    // 자식 테이블도 soft delete하기 (1) 수동으로 (2) Entity subscriber 이용하기
+
     await this.eventRepository.softDelete(id);
   }
 
+  /* deprecated */
   async createSeat(
     eventId: string,
     createSeatRequestDto: CreateSeatRequestDto,
@@ -344,7 +395,9 @@ export class EventsService {
   async findAllSeats(eventId: string): Promise<CommonResponse<Seat[]>> {
     const seats = await this.seatRepository
       .createQueryBuilder('seat')
-      .where('seat.eventId = :eventId', { eventId })
+      .leftJoinAndSelect('seat.area', 'area')
+      .leftJoinAndSelect('area.event', 'event')
+      .where('area.eventId = :eventId', { eventId })
       .select([
         'seat.id',
         'seat.cx',
@@ -354,6 +407,10 @@ export class EventsService {
         'seat.number',
         'seat.createdAt',
         'seat.updatedAt',
+        'area.id',
+        'area.label',
+        'area.price',
+        // 'area.svg',
       ])
       .getMany();
 
@@ -366,7 +423,8 @@ export class EventsService {
   ): Promise<CommonResponse<Seat>> {
     const seat = await this.seatRepository
       .createQueryBuilder('seat')
-      .leftJoinAndSelect('seat.event', 'event', 'event.deletedAt IS NULL')
+      .leftJoinAndSelect('seat.area', 'area', 'area.deletedAt Is NULL')
+      .leftJoinAndSelect('area.event', 'event', 'event.deletedAt IS NULL')
       .select([
         'seat.id',
         'seat.cx',
@@ -376,6 +434,9 @@ export class EventsService {
         'seat.number',
         'seat.createdAt',
         'seat.updatedAt',
+        'area.id',
+        'area.label',
+        'area.price',
         'event.id',
         'event.title',
         'event.thumbnail',
@@ -414,10 +475,13 @@ export class EventsService {
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    const seat = await this.seatRepository.findOne({
-      // where: { id: seatId, event: { id: eventId } },
-      relations: ['event'],
-    });
+    const seat = await this.seatRepository
+      .createQueryBuilder('seat')
+      .leftJoinAndSelect('seat.area', 'area')
+      .leftJoinAndSelect('seat.event', 'event')
+      .where('seat.id = :seatId', { seatId })
+      .andWhere('event.id = :eventId', { eventId })
+      .getOne();
 
     if (!seat) {
       const error = ERROR_CODES.SEAT_NOT_FOUND;
@@ -426,7 +490,6 @@ export class EventsService {
 
     seat.cx = cx;
     seat.cy = cy;
-    // seat.area = area;
     seat.row = row;
     seat.number = number;
 
@@ -439,14 +502,13 @@ export class EventsService {
   }
 
   async deleteSeat(eventId: string, seatId: string) {
-    if (eventId) {
-    }
-    if (seatId) {
-    }
-
-    const seat = await this.seatRepository.findOne({
-      // where: { id: seatId, event: { id: eventId } },
-    });
+    const seat = await this.seatRepository
+      .createQueryBuilder('seat')
+      .leftJoinAndSelect('seat.area', 'area')
+      .leftJoinAndSelect('seat.event', 'event')
+      .where('seat.id = :seatId', { seatId })
+      .andWhere('event.id = :eventId', { eventId })
+      .getOne();
 
     if (!seat) {
       const error = ERROR_CODES.SEAT_NOT_FOUND;
@@ -459,13 +521,20 @@ export class EventsService {
   async findAllSeatStatus(eventId: string, eventDateId: string) {
     const queryBuilder = this.seatRepository
       .createQueryBuilder('seat')
-      .leftJoinAndSelect(
-        'seat.reservations',
-        'reservation',
-        'reservation.deletedAt IS NULL',
-      )
-      .leftJoinAndSelect('reservation.eventDate', 'eventDate')
-      .where('seat.eventId = :eventId', { eventId })
+      .leftJoinAndSelect('seat.area', 'area')
+      .leftJoinAndSelect('area.event', 'event')
+      .leftJoinAndSelect('event.eventDates', 'eventDate')
+      .leftJoinAndSelect('seat.reservations', 'reservation')
+      .leftJoinAndSelect('reservation.order', 'order')
+      .leftJoinAndSelect('order.user', 'user')
+      .andWhere('event.id = :eventId', { eventId });
+    if (eventDateId) {
+      queryBuilder.andWhere(
+        '(eventDate.id = :eventDateId OR :eventDateId IS NULL)',
+        { eventDateId },
+      );
+    }
+    const seats = await queryBuilder
       .select([
         'seat.id',
         'seat.cx',
@@ -473,19 +542,20 @@ export class EventsService {
         'seat.area',
         'seat.row',
         'seat.number',
+        'area.id',
+        'area.label',
+        'area.price',
         'reservation.id',
-        'eventDate.id',
-        'eventDate.date',
-      ]);
-
-    if (eventDateId) {
-      queryBuilder.andWhere(
-        '(eventDate.id = :eventDateId OR :eventDateId IS NULL)',
-        { eventDateId },
-      );
-    }
-
-    const seats = await queryBuilder.getMany();
+        'order.id',
+        'order.createdAt',
+        'order.updatedAt',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.role',
+        'user.profileImage',
+      ])
+      .getMany();
 
     return new CommonResponse(seats);
   }
@@ -497,26 +567,14 @@ export class EventsService {
   ) {
     const queryBuilder = this.seatRepository
       .createQueryBuilder('seat')
-      .leftJoinAndSelect(
-        'seat.reservations',
-        'reservation',
-        'reservation.deletedAt IS NULL',
-      )
-      .leftJoinAndSelect('reservation.eventDate', 'eventDate')
-      .where('seat.eventId = :eventId', { eventId })
+      .leftJoinAndSelect('seat.area', 'area')
+      .leftJoinAndSelect('area.event', 'event')
+      .leftJoinAndSelect('event.eventDates', 'eventDate')
+      .leftJoinAndSelect('seat.reservations', 'reservation')
+      .leftJoinAndSelect('reservation.order', 'order')
+      .leftJoinAndSelect('order.user', 'user')
       .andWhere('seat.id = :seatId', { seatId })
-      .select([
-        'seat.id',
-        'seat.cx',
-        'seat.cy',
-        'seat.area',
-        'seat.row',
-        'seat.number',
-        'reservation.id',
-        'eventDate.id',
-        'eventDate.date',
-      ]);
-
+      .andWhere('event.id = :eventId', { eventId });
     if (eventDateId) {
       queryBuilder.andWhere(
         '(eventDate.id = :eventDateId OR :eventDateId IS NULL)',
@@ -524,13 +582,34 @@ export class EventsService {
       );
     }
 
-    const seats = await queryBuilder.getOne();
+    const seat = await queryBuilder
+      .select([
+        'seat.id',
+        'seat.cx',
+        'seat.cy',
+        'seat.area',
+        'seat.row',
+        'seat.number',
+        'area.id',
+        'area.label',
+        'area.price',
+        'reservation.id',
+        'order.id',
+        'order.createdAt',
+        'order.updatedAt',
+        'user.id',
+        'user.nickname',
+        'user.email',
+        'user.role',
+        'user.profileImage',
+      ])
+      .getOne();
 
-    if (!seats) {
+    if (!seat) {
       const error = ERROR_CODES.SEAT_NOT_FOUND;
       throw new CustomException(error.code, error.message, error.httpStatus);
     }
 
-    return new CommonResponse(seats);
+    return new CommonResponse(seat);
   }
 }
