@@ -30,7 +30,68 @@ export class ManagersController {
       example: {
         code: 0,
         message: 'Success',
-        data: {},
+        data: {
+          id: 'c672b08f-65df-48e8-a46e-389d18d87eda',
+          title: '등록 테스트',
+          thumbnail:
+            'https://swjungle.net/static/hub/images/kaist_jungle_logo.png',
+          place: '카이스트 문지캠퍼스 강의동 407호',
+          cast: '정글 9기',
+          ageLimit: 12,
+          svg: '{"svgString":...</svg>"}',
+          ticketingStartTime: '2024-12-12T21:16:00.000Z',
+          createdAt: '2024-12-05T21:17:00.644Z',
+          updatedAt: '2024-12-05T21:17:00.644Z',
+          user: {
+            id: '3cf8be9f-0b87-4bad-9199-892d6d53be16',
+            nickname: '용맹한코랄양치기',
+            email: 'manager@jungle.com',
+            profileImage: null,
+            role: 'manager',
+          },
+          areas: [
+            {
+              id: '2df196b8-bb73-4a86-92bb-639a9dc3066c',
+              cx: 734,
+              cy: 836,
+              row: 20,
+              number: 2,
+              reservations: [
+                {
+                  id: '733b1a7a-28cb-4ec3-8d07-a2a9e219d2b1',
+                  order: {
+                    id: '27da7533-92e4-42a6-b14d-e656238f53e7',
+                    createdAt: '2024-12-06T07:05:16.026Z',
+                    updatedAt: '2024-12-06T07:05:16.026Z',
+                    deletedAt: null,
+                    user: {
+                      id: '8454aee1-adec-4a4a-be2d-38379db653d2',
+                      nickname: '지혜로운옥색코끼리',
+                      email: '최우석@jungle.com',
+                      role: 'user',
+                    },
+                  },
+                },
+                {
+                  id: 'f2a7a545-704a-419e-a24b-09eef9753cf9',
+                  label: 'A',
+                  price: 50000,
+                  svg: '<g id="50">...</g>',
+                  seats: [
+                    {
+                      id: '599ff1e3-2edc-4f3f-8fbe-5501ff254a31',
+                      cx: 417,
+                      cy: 72,
+                      row: 1,
+                      number: 1,
+                      reservations: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       },
     },
   })
@@ -55,17 +116,21 @@ export class ManagersController {
     },
   })
   @ApiBearerAuth()
-  @Get(':id')
+  @Get(':eventId/reservation-status')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  findOne(
-    @Param('id') eventId: string,
+  findOneEventWithSeatStatus(
+    @Param('eventId') eventId: string,
     @Query('eventDateId') eventDateId: string,
     @Req() req: any,
   ): Promise<CommonResponse<any>> {
     console.log(req.user);
     const { userId } = req.user;
-    return this.managerService.findOne(userId, eventId, eventDateId);
+    return this.managerService.findOneEventWithSeatStatus(
+      userId,
+      eventId,
+      eventDateId,
+    );
   }
 
   @ApiOperation({ summary: 'Retrieve all events' })
@@ -164,187 +229,4 @@ export class ManagersController {
     const { userId } = req.user;
     return this.managerService.findAll(userId);
   }
-
-  // @ApiOperation({
-  //   summary: 'Get seat reservation status for an event',
-  //   description:
-  //     'Fetches the reservation status for all seats in a specific event. Optionally filters by eventDateId.',
-  // })
-  // @ApiQuery({
-  //   name: 'eventDateId',
-  //   required: false,
-  //   type: String,
-  //   description: 'The ID of the event date to filter by.',
-  // })
-  // @ApiParam({
-  //   name: 'eventId',
-  //   required: true,
-  //   type: String,
-  //   description: 'The ID of the event to fetch seat reservation status for.',
-  // })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Successfully fetched seat reservation status.',
-  //   schema: {
-  //     example: {
-  //       code: 0,
-  //       message: 'Success',
-  //       data: [
-  //         {
-  //           id: '5b54820d-d6b8-4eea-840f-f191881198ac',
-  //           cx: 100,
-  //           cy: 100,
-  //           area: 1,
-  //           row: 1,
-  //           number: 3,
-  //           price: 77000,
-  //           reservations: [
-  //             {
-  //               id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',
-  //               eventDate: {
-  //                 id: 'aad8e60c-7973-40c6-b53e-335ac03a2af0',
-  //                 date: '2024-12-02T19:00:00.000Z',
-  //               },
-  //             },
-  //           ],
-  //         },
-  //       ],
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 401,
-  //   description: 'Unauthorized - Token is invalid or missing',
-  //   schema: {
-  //     example: {
-  //       code: 8,
-  //       message: 'Unauthorized',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 404,
-  //   description: 'Event not found.',
-  //   schema: {
-  //     example: {
-  //       code: 9,
-  //       message: 'Event not found',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 500,
-  //   description: 'Internal server error',
-  //   schema: {
-  //     example: {
-  //       code: 6,
-  //       message: 'Internal server error',
-  //     },
-  //   },
-  // })
-  // @ApiBearerAuth()
-  // @Get(':eventId/seats-status')
-  // @HttpCode(200)
-  // @UseGuards(JwtAuthGuard)
-  // findAllSeatStatus(
-  //   @Param('eventId') eventId: string,
-  //   @Query('eventDateId') eventDateId: string,
-  // ) {
-  //   return this.eventService.findAllSeatStatus(eventId, eventDateId);
-  // }
-
-  // @ApiOperation({
-  //   summary: 'Get reservation status for a specific seat in an event',
-  //   description:
-  //     'Fetches the reservation status for a specific seat in a specific event. Includes reservation details if applicable.',
-  // })
-  // @ApiParam({
-  //   name: 'eventId',
-  //   required: true,
-  //   type: String,
-  //   description: 'The ID of the event to fetch seat reservation status for.',
-  //   example: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
-  // })
-  // @ApiParam({
-  //   name: 'seatId',
-  //   required: true,
-  //   type: String,
-  //   description: 'The ID of the seat to fetch reservation status for.',
-  //   example: '5b54820d-d6b8-4eea-840f-f191881198ac',
-  // })
-  // @ApiQuery({
-  //   name: 'eventDateId',
-  //   required: false,
-  //   type: String,
-  //   description: 'The ID of the event date to filter by.',
-  // })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Successfully fetched seat reservation status.',
-  //   schema: {
-  //     example: {
-  //       code: 0,
-  //       message: 'Success',
-  //       data: {
-  //         id: '5b54820d-d6b8-4eea-840f-f191881198ac',
-  //         cx: 100,
-  //         cy: 100,
-  //         area: 1,
-  //         row: 1,
-  //         number: 3,
-  //         price: 77000,
-  //         reservations: [
-  //           {
-  //             id: 'fc9409f1-bbc9-44d1-8f53-e00d4964e9d2',
-  //             eventDate: {
-  //               id: 'aad8e60c-7973-40c6-b53e-335ac03a2af0',
-  //               date: '2024-12-02T19:00:00.000Z',
-  //             },
-  //           },
-  //         ],
-  //       },
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 401,
-  //   description: 'Unauthorized - Token is invalid or missing',
-  //   schema: {
-  //     example: {
-  //       code: 8,
-  //       message: 'Unauthorized',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 404,
-  //   description: 'Seat not found for the specified event',
-  //   schema: {
-  //     example: {
-  //       code: 11,
-  //       message: 'Seat not found for the specified event',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 500,
-  //   description: 'Internal server error',
-  //   schema: {
-  //     example: {
-  //       code: 6,
-  //       message: 'Internal server error',
-  //     },
-  //   },
-  // })
-  // @ApiBearerAuth()
-  // @Get(':eventId/seats-status/:seatId')
-  // @HttpCode(200)
-  // @UseGuards(JwtAuthGuard)
-  // findOneSeatStatus(
-  //   @Param('eventId') eventId: string,
-  //   @Param('seatId') seatId: string,
-  //   @Query('eventDateId') eventDateId: string,
-  // ) {
-  //   return this.eventService.findOneSeatStatus(eventId, seatId, eventDateId);
-  // }
 }
