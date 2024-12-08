@@ -285,7 +285,7 @@ export class OrdersController {
     },
   })
   @ApiResponse({
-    status: 409,
+    status: 404,
     description: 'Order not found',
     schema: {
       example: {
