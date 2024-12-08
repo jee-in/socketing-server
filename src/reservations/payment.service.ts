@@ -189,7 +189,7 @@ export class PaymentsService {
           'area.label AS areaLabel',
           'area.price AS areaPrice',
         ])
-        .where('o.id = :orderId', { orderId: savedOrder.id })
+        .where('o.id = :orderId', { orderId: savedOrder.id });
 
       // 생성된 쿼리와 파라미터를 출력
       const [query, parameters] = qb.getQueryAndParameters();
@@ -197,7 +197,6 @@ export class PaymentsService {
       console.log('Query Parameters:', parameters);
 
       const selectedOrder = await qb.getRawOne();
-
 
       const reservations = [
         {

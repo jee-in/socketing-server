@@ -259,50 +259,72 @@ export class OrdersController {
     return this.orderService.findOne(orderId, userId);
   }
 
-  // @ApiOperation({
-  //   summary: 'Cancel one order',
-  //   description: 'Cancel one order that user have reserved',
-  // })
-  // @ApiResponse({
-  //   status: 201,
-  //   description: 'An Order successfully canceled',
-  //   schema: {
-  //     example: {
-  //       code: 0,
-  //       message: 'Success',
-  //       data: {},
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 401,
-  //   description: 'Unauthorized - Token is invalid or missing',
-  //   schema: {
-  //     example: {
-  //       code: 8,
-  //       message: 'Unauthorized',
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 500,
-  //   description: 'Internal server error',
-  //   schema: {
-  //     example: {
-  //       code: 6,
-  //       message: 'Internal server error',
-  //     },
-  //   },
-  // })
-  // @ApiBearerAuth()
-  // @Post(':orderId/cancel')
-  // @HttpCode(201)
-  // @UseGuards(JwtAuthGuard)
-  // cancel(
-  //   @Param('orderId') orderId: string,
-  //   @Req() req,
-  // ): Promise<CommonResponse<any>> {
-  //   const { userId } = req.user;
-  //   return this.orderService.cancelOne(orderId, userId);
-  // }
+  @ApiOperation({
+    summary: 'Cancel one order',
+    description: 'Cancel one order that user have reserved',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'An Order successfully canceled',
+    schema: {
+      example: {
+        code: 0,
+        message: 'Success',
+        data: {},
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token is invalid or missing',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Order not found',
+    schema: {
+      example: {
+        code: 8,
+        message: 'Order not found',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'This order has already been canceled. Further cancellation is not allowed.',
+    schema: {
+      example: {
+        code: 22,
+        message:
+          'This order has already been canceled. Further cancellation is not allowed.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      example: {
+        code: 6,
+        message: 'Internal server error',
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Post(':orderId/cancel')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  cancel(
+    @Param('orderId') orderId: string,
+    @Req() req,
+  ): Promise<CommonResponse<any>> {
+    const { userId } = req.user;
+    return this.orderService.cancelOne(orderId, userId);
+  }
 }

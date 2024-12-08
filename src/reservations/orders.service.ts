@@ -11,6 +11,8 @@ import { Order } from './entities/order.entity';
 import { FindAllOrderRequestDto } from './dto/find-all-order-request.dto';
 import { FindAllOrderResponseDto } from './dto/find-all-order-response.dto';
 import { FindOneOrderResponseDto } from './dto/find-one-order-response.dto';
+import { ERROR_CODES } from 'src/contants/error-codes';
+import { CustomException } from 'src/exceptions/custom-exception';
 
 @Injectable()
 export class OrdersService {
@@ -253,19 +255,55 @@ export class OrdersService {
     return new CommonResponse(orderInstance);
   }
 
-  // async cancelOne(
-  //   orderId: string,
-  //   userId: string,
-  // ): Promise<CommonResponse<any>> {
-  //   // 유효성 검증
-  //   // 1. order 존재, canceled된 적 없는지
+  async cancelOne(
+    orderId: string,
+    userId: string,
+  ): Promise<CommonResponse<any>> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.startTransaction();
 
-  //   // 2. order의 주인이 user가 맞는지
+    // 쿼리 실행
 
-  //   // 쿼리 실행
+    // 응답 데이터 생성
 
-  //   // 응답 데이터 생성
+    try {
+      const order = await queryRunner.manager
+        .createQueryBuilder('order', 'o')
+        .select()
+        .andWhere('o.userId = :userId', { userId })
+        .getOne();
 
-  //   return;
-  // }
+      if (!order) {
+        const error = ERROR_CODES.ORDER_NOT_FOUND;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      if (order.canceledAt) {
+        const error = ERROR_CODES.ALREADY_CANCELED_ORDER;
+        console.log(`This order is canceled at ${order.canceledAt}`);
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      const result = await queryRunner.manager
+        .createQueryBuilder()
+        .update('order')
+        .set({ canceledAt: new Date() })
+        .where('id = :orderId', { orderId: order.id })
+        .execute();
+
+      if (result.affected && result.affected > 0) {
+        console.log('Update successful!');
+      } else {
+        console.log('No rows were updated.');
+      }
+
+      await queryRunner.commitTransaction();
+      return new CommonResponse({});
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

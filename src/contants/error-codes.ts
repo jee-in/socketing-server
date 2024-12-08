@@ -105,4 +105,10 @@ export const ERROR_CODES = {
       'This payment is not acceptable because of the invalid payment request',
     httpStatus: 409,
   },
+  ALREADY_CANCELED_ORDER: {
+    code: 22,
+    message:
+      'This order has already been canceled. Further cancellation is not allowed.',
+    httpStatus: 409,
+  },
 };
