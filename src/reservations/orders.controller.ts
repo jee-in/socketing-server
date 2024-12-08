@@ -289,7 +289,7 @@ export class OrdersController {
     description: 'Order not found',
     schema: {
       example: {
-        code: 8,
+        code: 15,
         message: 'Order not found',
       },
     },
