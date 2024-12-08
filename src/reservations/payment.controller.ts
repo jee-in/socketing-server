@@ -16,9 +16,6 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { PaymentsService } from './payment.service';
-import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
-import { CreatePaymentResponseDto } from './dto/create-payment-response.dto';
-import { UpdatePaymentRequestDto } from './dto/update-payment-request.dto';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -92,12 +89,9 @@ export class PaymentsController {
   @Post()
   @HttpCode(201)
   @UseGuards(JwtAuthGuard)
-  create(
-    @Body() body: CreatePaymentRequestDto,
-    @Req() req,
-  ): Promise<CommonResponse<CreatePaymentResponseDto>> {
+  create(@Body() body: any, @Req() req): Promise<CommonResponse<any>> {
     const { userId } = req.user;
-    return this.paymentService.createPayment(body, userId);
+    return this.paymentService.createPaymentforMigration(body, userId);
   }
 
   @ApiOperation({
@@ -219,10 +213,7 @@ export class PaymentsController {
   @Patch()
   @HttpCode(201)
   @UseGuards(JwtAuthGuard)
-  update(
-    @Body() body: UpdatePaymentRequestDto,
-    @Req() req,
-  ): Promise<CommonResponse<any>> {
+  update(@Body() body: any, @Req() req): Promise<CommonResponse<any>> {
     const { userId } = req.user;
     return this.paymentService.updatePayment(body, userId);
   }

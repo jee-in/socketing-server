@@ -1,20 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Not, Repository } from 'typeorm';
+import {
+  DataSource,
+  In,
+  QueryFailedError,
+  QueryRunner,
+  Repository,
+} from 'typeorm';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { User } from 'src/users/entities/user.entity';
 import { CustomException } from 'src/exceptions/custom-exception';
 import { ERROR_CODES } from 'src/contants/error-codes';
-import { PaymentStatus } from 'src/common/enum/payment-status';
-import { plainToInstance } from 'class-transformer';
-import { Payment } from './entities/payment.entity';
 import { Order } from './entities/order.entity';
 import { Reservation } from './entities/reservation.entity';
-import { CreatePaymentResponseDto } from './dto/create-payment-response.dto';
+import { Payment } from './entities/payment.entity';
+import { EventDate } from 'src/events/entities/event-date.entity';
+import { Seat } from 'src/events/entities/seat.entity';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
-import { PaymentDto } from './dto/base/payment.dto';
-import { OrderDto } from './dto/base/order.dto';
-import { UpdatePaymentRequestDto } from './dto/update-payment-request.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -24,167 +26,146 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<Payment>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(EventDate)
+    private readonly eventDateRepository: Repository<EventDate>,
+    @InjectRepository(Seat)
+    private readonly seatRepository: Repository<Seat>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Reservation)
     private readonly reservationRepository: Repository<Reservation>,
   ) {}
 
-  async createPayment(
-    createPaymentRequestDto: CreatePaymentRequestDto,
-    userId: string,
-  ): Promise<CommonResponse<CreatePaymentResponseDto>> {
-    const { orderId, paymentMethod, totalAmount } = createPaymentRequestDto;
+  async isSeatReserved(
+    seatId: string,
+    eventDateId: string,
+    queryRunner: QueryRunner,
+  ): Promise<boolean> {
+    const reservedReservation = await queryRunner.manager
+      .createQueryBuilder('reservation', 'reservation')
+      .innerJoin('reservation.eventDate', 'eventDate')
+      .leftJoin('reservation.seat', 'seat')
+      .innerJoin('seat.area', 'area')
+      .leftJoin('reservation.order', 'order')
+      .where('eventDate.id = :eventDateId', { eventDateId })
+      .andWhere('seat.id = :seatId', { seatId })
+      .andWhere('order.deletedAt IS NULL')
+      .getOne();
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.startTransaction();
-
-    try {
-      const user = await queryRunner.manager.findOne(User, {
-        where: { id: userId },
-      });
-      if (!user) {
-        const error = ERROR_CODES.USER_NOT_FOUND;
-        throw new CustomException(error.code, error.message, error.httpStatus);
-      }
-
-      const order = await queryRunner.manager.findOne(Order, {
-        where: { id: orderId },
-        relations: ['reservations'],
-      });
-      if (!order) {
-        const error = ERROR_CODES.ORDER_NOT_FOUND;
-        throw new CustomException(error.code, error.message, error.httpStatus);
-      }
-
-      if (!order.reservations || order.reservations.length === 0) {
-        const error = ERROR_CODES.RESERVATION_NOT_FOUND;
-        throw new CustomException(error.code, error.message, error.httpStatus);
-      }
-
-      const existingPayment = await queryRunner.manager.findOne(Payment, {
-        where: {
-          order: { id: orderId },
-          paymentStatus: Not(PaymentStatus.CANCELED),
-        },
-        relations: ['order'],
-      });
-      if (existingPayment) {
-        const error = ERROR_CODES.EXISTING_PAYMENT;
-        throw new CustomException(error.code, error.message, error.httpStatus);
-      }
-
-      const newPayment = queryRunner.manager.create(Payment, {
-        order,
-        paymentMethod,
-        paymentAmount: totalAmount,
-        paymentStatus: PaymentStatus.PENDING,
-      });
-
-      const savedPayment = await queryRunner.manager.save(Payment, newPayment);
-
-      const paymentInstance = plainToInstance(PaymentDto, savedPayment, {
-        excludeExtraneousValues: true,
-      });
-
-      const orderInstance = plainToInstance(OrderDto, order, {
-        excludeExtraneousValues: true,
-      });
-
-      const paymentResponse = plainToInstance(
-        CreatePaymentResponseDto,
-        {
-          user: user,
-          order: orderInstance,
-          payment: paymentInstance,
-        },
-        { excludeExtraneousValues: true },
-      );
-
-      await queryRunner.commitTransaction();
-      return new CommonResponse(paymentResponse);
-    } catch (e) {
-      console.log(e);
-      await queryRunner.rollbackTransaction();
-      throw e; // 트랜잭션 처리 중 발생한 예외를 상위로 던짐
-    } finally {
-      await queryRunner.release();
-    }
+    return !!reservedReservation;
   }
 
-  async updatePayment(
-    updatePaymentRequestDto: UpdatePaymentRequestDto,
+  async createPaymentforMigration(
+    createPaymentRequestDto: CreatePaymentRequestDto,
     userId: string,
   ): Promise<CommonResponse<any>> {
-    const { orderId, paymentId, newPaymentStatus } = updatePaymentRequestDto;
+    const { paymentMethod, eventDateId, seatIds } = createPaymentRequestDto;
 
-    /* Transaction */
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
 
     try {
-      /* Error handling */
-      const user = await queryRunner.manager.findOne(User, {
-        where: { id: userId },
+      // 사용자 조회
+      const user = await queryRunner.manager
+        .createQueryBuilder('user', 'user')
+        .where('user.id = :userId', { userId })
+        .getOne();
+
+      // EventDate 검증
+      const eventDate = await queryRunner.manager.findOne(EventDate, {
+        where: { id: eventDateId },
+        relations: ['event'],
       });
-      if (!user) {
-        const error = ERROR_CODES.USER_NOT_FOUND;
+      if (!eventDate) {
+        const error = ERROR_CODES.EVENT_DATE_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
 
-      const existingPayment = await queryRunner.manager.findOne(Payment, {
-        where: { id: paymentId },
+      // 좌석 검증
+      const seats = await queryRunner.manager.find(Seat, {
+        where: { id: In(seatIds) },
+        relations: ['area'],
       });
-      if (!existingPayment) {
-        const error = ERROR_CODES.PAYMENT_NOT_FOUND;
+      if (seats.length !== seatIds.length) {
+        const missingSeatIds = seatIds.filter(
+          (seatId) => !seats.some((seat) => seat.id === seatId),
+        );
+
+        console.log(`Missing seat IDs: ${missingSeatIds.join(', ')}`);
+        const error = ERROR_CODES.SEAT_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
 
-      if (user.point < existingPayment.paymentAmount) {
+      // 예약 여부 검증
+      const reservedSeats = await Promise.all(
+        seatIds.map(async (seatId) => {
+          const isReserved = await this.isSeatReserved(
+            seatId,
+            eventDateId,
+            queryRunner,
+          );
+          return isReserved ? seatId : null;
+        }),
+      );
+
+      const reservedSeatIds = reservedSeats.filter((seatId) => seatId !== null);
+      if (reservedSeatIds.length > 0) {
+        const error = ERROR_CODES.EXISTING_ORDER;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
+
+      // 예약 생성
+      const newReservations = seats.map((seat) =>
+        queryRunner.manager.create(Reservation, { eventDate, seat }),
+      );
+      await queryRunner.manager.save(newReservations);
+
+      // 주문 생성
+      const newOrder = queryRunner.manager.create(Order, {
+        user,
+        paymentMethod,
+        reservations: newReservations,
+      });
+      const savedOrder = await queryRunner.manager.save(newOrder);
+
+      // 총 금액 계산
+      const objTotalAmount = await queryRunner.manager
+        .createQueryBuilder()
+        .select('SUM(area.price)', 'totalAmount')
+        .from(Reservation, 'reservation')
+        .leftJoin('reservation.seat', 'seat')
+        .leftJoin('seat.area', 'area')
+        .where('reservation.eventDateId = :eventDateId', { eventDateId })
+        .andWhere('reservation.seatId IN (:...seatIds)', { seatIds })
+        .getRawOne();
+
+      const totalAmount = Number(objTotalAmount?.totalAmount || 0);
+
+      // totalAmount 예외 처리 넣기
+
+      // 포인트 차감
+      if (user.point < totalAmount) {
         const error = ERROR_CODES.INSUFFICIENT_BALANCE;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-
-      // 이미 complete 상태인데 complete 요청이 들어오면 예외 처리
-      const originalPaymentStatus = existingPayment.paymentStatus;
-      if (
-        originalPaymentStatus === PaymentStatus.COMPLETED &&
-        newPaymentStatus === PaymentStatus.COMPLETED
-      ) {
-        const error = ERROR_CODES.INVALID_PAYMENT_REQUEST;
-        throw new CustomException(error.code, error.message, error.httpStatus);
-      }
-
-      // 포인트 차감
-      user.point -= existingPayment.paymentAmount;
+      user.point -= totalAmount;
       await queryRunner.manager.save(user);
 
-      // Payment 업데이트
-      existingPayment.paymentStatus = newPaymentStatus;
-      existingPayment.paidAt = new Date();
-      await queryRunner.manager.save(existingPayment);
-
-      const selectedPayment = await queryRunner.manager
-        .createQueryBuilder(Payment, 'payment')
-        .leftJoinAndSelect('payment.order', 'order')
-        .leftJoinAndSelect('order.user', 'user')
-        .leftJoinAndSelect('order.reservations', 'reservation')
+      // 주문 데이터 조회 및 응답 데이터 구성
+      const qb = await queryRunner.manager
+        .createQueryBuilder('order', 'o')
+        .leftJoinAndSelect('o.user', 'user')
+        .leftJoinAndSelect('o.reservations', 'reservation')
         .leftJoinAndSelect('reservation.eventDate', 'eventDate')
         .leftJoinAndSelect('eventDate.event', 'event')
         .leftJoinAndSelect('reservation.seat', 'seat')
         .leftJoinAndSelect('seat.area', 'area')
         .select([
-          'payment.id AS paymentId',
-          'payment.paymentAmount AS paymentAmount',
-          'payment.paymentMethod AS paymentMethod',
-          'payment.paymentStatus AS paymentStatus',
-          'payment.paidAt AS paymentPaidAt',
-          'payment.createdAt AS paymentCreatedAt',
-          'payment.updatedAt AS paymentUpdatedAt',
-          'order.id AS orderId',
-          'order.createdAt AS orderCreatedAt',
-          'order.updatedAt AS orderUpdatedAt',
-          'order.deletedAt AS orderDeletedAt',
+          'o.id AS orderId',
+          'o.paymentMethod AS paymentMethod',
+          'o.createdAt AS orderCreatedAt',
+          'o.updatedAt AS orderUpdatedAt',
+          'o.deletedAt AS orderDeletedAt',
           'user.id AS userId',
           'user.nickname AS userNickname',
           'user.profileImage AS userProfileImage',
@@ -208,47 +189,48 @@ export class PaymentsService {
           'area.label AS areaLabel',
           'area.price AS areaPrice',
         ])
-        .andWhere('order.id = :orderId', { orderId })
-        .andWhere('payment.id = :paymentId', { paymentId })
-        .getRawMany();
+        .where('o.id = :orderId', { orderId: savedOrder.id })
 
-      // 응답 데이터 구성
-      const firstPayment = selectedPayment[0];
-      const reservations = selectedPayment.map((payment) => ({
-        reservationId: payment.reservationid,
-        seatId: payment.seatid,
-        seatCx: payment.seatcx || null,
-        seatCy: payment.seatcy || null,
-        seatRow: payment.seatrow,
-        seatNumber: payment.seatnumber,
-        seatAreaId: payment.areaid,
-        seatAreaLabel: payment.arealabel,
-        seatAreaPrice: payment.areaprice,
-      }));
+      // 생성된 쿼리와 파라미터를 출력
+      const [query, parameters] = qb.getQueryAndParameters();
+      console.log('Generated Query:', query);
+      console.log('Query Parameters:', parameters);
+
+      const selectedOrder = await qb.getRawOne();
+
+
+      const reservations = [
+        {
+          reservationId: selectedOrder.reservationid,
+          seatId: selectedOrder.seatid,
+          seatCx: selectedOrder.seatcx || null,
+          seatCy: selectedOrder.seatcy || null,
+          seatRow: selectedOrder.seatrow,
+          seatNumber: selectedOrder.seatnumber,
+          seatAreaId: selectedOrder.areaid,
+          seatAreaLabel: selectedOrder.arealabel,
+          seatAreaPrice: selectedOrder.areaprice,
+        },
+      ];
 
       const responseData = {
-        orderId: firstPayment.orderid,
-        orderCreatedAt: firstPayment.ordercreatedat || null,
-        orderUpdatedAt: firstPayment.orderupdatedat || null,
-        orderDeletedAt: firstPayment.orderdeletedat || null,
-        paymentId: firstPayment.paymentid,
-        paymentStatus: firstPayment.paymentstatus,
-        paymentMethod: firstPayment.paymentmethod,
-        paymentAmount: firstPayment.paymentamount,
-        paymentPaidAt: firstPayment.paymentpaidat || null,
-        paymentCreatedAt: firstPayment.paymentcreatedat || null,
-        paymentUpdatedAt: firstPayment.paymentupdatedat || null,
-        userId: firstPayment.userid || null,
-        userNickname: firstPayment.usernickname || null,
-        userEmail: firstPayment.useremail || null,
-        userProfileImage: firstPayment.userprofileimage || null,
-        userRole: firstPayment.userrole || null,
-        eventTitle: firstPayment.eventtitle,
-        eventDate: firstPayment.eventdate || null,
-        eventThumbnail: firstPayment.eventthumbnail || null,
-        eventPlace: firstPayment.eventplace || null,
-        eventCast: firstPayment.eventcast || null,
-        eventAgeLimit: firstPayment.eventagelimit || null,
+        orderId: selectedOrder.orderid,
+        orderCreatedAt: selectedOrder.ordercreatedat || null,
+        orderUpdatedAt: selectedOrder.orderupdatedat || null,
+        orderDeletedAt: selectedOrder.orderdeletedat || null,
+        paymentMethod: selectedOrder.paymentmethod || null,
+        paymentAmount: selectedOrder.paymentamount || totalAmount || null,
+        userId: selectedOrder.userid || null,
+        userNickname: selectedOrder.usernickname || null,
+        userEmail: selectedOrder.useremail || null,
+        userProfileImage: selectedOrder.userprofileimage || null,
+        userRole: selectedOrder.userrole || null,
+        eventTitle: selectedOrder.eventtitle,
+        eventDate: selectedOrder.eventdate || null,
+        eventThumbnail: selectedOrder.eventthumbnail || null,
+        eventPlace: selectedOrder.eventplace || null,
+        eventCast: selectedOrder.eventcast || null,
+        eventAgeLimit: selectedOrder.eventagelimit || null,
         reservations: reservations,
       };
 
@@ -256,9 +238,23 @@ export class PaymentsService {
       return new CommonResponse(responseData);
     } catch (e) {
       await queryRunner.rollbackTransaction();
+      if (e instanceof QueryFailedError && e.driverError.code === '23505') {
+        const error = ERROR_CODES.EXISTING_RESERVATION;
+        throw new CustomException(error.code, error.message, error.httpStatus);
+      }
       throw e;
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async updatePayment(body: any, userId: string): Promise<CommonResponse<any>> {
+    /* deprecated method. no logic */
+    console.log('empty service invoked');
+    if (body) {
+    }
+    if (userId) {
+    }
+    return;
   }
 }

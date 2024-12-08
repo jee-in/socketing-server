@@ -5,20 +5,24 @@ import { PaymentStatus } from 'src/common/enum/payment-status';
 
 export class PaymentDto {
   @Expose()
+  @IsOptional()
   @IsString()
-  id: string;
+  id: string | null;
 
   @Expose()
+  @IsOptional()
   @IsInt()
-  paymentAmount: number;
+  paymentAmount: number | null;
 
   @Expose()
+  @IsOptional()
   @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  paymentMethod: PaymentMethod | null;
 
   @Expose()
+  @IsOptional()
   @IsEnum(PaymentStatus)
-  paymentStatus: PaymentStatus;
+  paymentStatus: PaymentStatus | null;
 
   @Expose()
   @IsOptional()

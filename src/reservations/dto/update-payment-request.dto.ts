@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaymentStatus } from 'src/common/enum/payment-status';
 
 export class UpdatePaymentRequestDto {
@@ -7,7 +7,7 @@ export class UpdatePaymentRequestDto {
     description: 'The UUID of order',
     example: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   orderId: string;
 
@@ -15,7 +15,7 @@ export class UpdatePaymentRequestDto {
     description: 'The UUID of payment',
     example: 'ba1cdf2b-69ec-473f-a501-47a7b1e73602',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   paymentId: string;
 
@@ -24,7 +24,7 @@ export class UpdatePaymentRequestDto {
     example: PaymentStatus.COMPLETED,
     enum: PaymentStatus,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsEnum(PaymentStatus)
   newPaymentStatus: PaymentStatus;
 }

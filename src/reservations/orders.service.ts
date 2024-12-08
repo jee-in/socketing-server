@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { User } from 'src/users/entities/user.entity';
@@ -11,10 +11,6 @@ import { plainToInstance } from 'class-transformer';
 import { Reservation } from './entities/reservation.entity';
 import { Order } from './entities/order.entity';
 import { CreateOrderRequestDto } from './dto/create-order-request.dto';
-import { CreateOrderResponseDto } from './dto/create-order-response.dto';
-import { UserWithPoint } from 'src/users/dto/user-with-point.dto';
-import { EventDto } from 'src/events/dto/base/event.dto';
-import { BasicSeatWithAreaDto } from 'src/events/dto/basic-seat-with-area.dot';
 import { FindAllOrderRequestDto } from './dto/find-all-order-request.dto';
 import { FindAllOrderResponseDto } from './dto/find-all-order-response.dto';
 import { FindOneOrderResponseDto } from './dto/find-one-order-response.dto';
@@ -50,139 +46,23 @@ export class OrdersService {
     return !!reservedReservation;
   }
 
-  async createOrder(
-    body: CreateOrderRequestDto,
-    userId: string,
-  ): Promise<CommonResponse<CreateOrderResponseDto>> {
-    console.log(body);
-    const { eventId, eventDateId, seatIds } = body;
+  // async createOrder(
+  //   body: CreateOrderRequestDto,
+  //   userId: string,
+  // ): Promise<CommonResponse<any>> {
+  //   console.log('empty service invoked');
+  //   if (body) {
+  //   }
+  //   if (userId) {
+  //   }
+  //   return;
+  // }
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.startTransaction();
-
-    /* error handilng code */
-    // user validation
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      const error = ERROR_CODES.USER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
-    // eventDate validation
-    const eventDate = await this.eventDateRepository.findOne({
-      where: { id: eventDateId, event: { id: eventId } },
-      relations: ['event'],
-    });
-    if (!eventDate) {
-      const error = ERROR_CODES.EVENT_DATE_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
-    // seat validation
-    const seats = await this.seatRepository.find({
-      where: { id: In(seatIds) },
-      relations: ['area'],
-    });
-
-    if (seats.length !== seatIds.length) {
-      const missingSeatIds = seatIds.filter(
-        (seatId) => !seats.find((seat) => seat.id === seatId),
-      );
-      console.log(`Seats not found for IDs: ${missingSeatIds.join(', ')}`);
-      const error = ERROR_CODES.SEAT_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
-    // reservation validation
-    const reservedSeats = await Promise.all(
-      seatIds.map(async (seatId) => {
-        const isReserved = await this.isSeatReserved(seatId, eventDateId);
-        return isReserved ? seatId : null;
-      }),
-    );
-
-    const reservedSeatIds = reservedSeats.filter((seatId) => seatId !== null);
-
-    if (reservedSeatIds.length > 0) {
-      console.log(`Seats already reserved: ${reservedSeatIds.join(', ')}`);
-      const error = ERROR_CODES.EXISTING_ORDER;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
-    try {
-      // execute SQL query
-      const newReservations = seats.map((seat) => {
-        const reservation = this.reservationRepository.create({
-          eventDate,
-          seat,
-        });
-        return reservation;
-      });
-
-      const newOrder = this.orderRepository.create({
-        user,
-        reservations: newReservations, // order-reservation insertion mapping
-      });
-
-      const savedOrder = await this.orderRepository.save(newOrder);
-
-      // configure response
-      const userInstance = plainToInstance(UserWithPoint, user, {
-        excludeExtraneousValues: true,
-      });
-
-      const eventIstance = plainToInstance(EventDto, eventDate.event, {
-        excludeExtraneousValues: true,
-      });
-
-      const seatInstances = plainToInstance(BasicSeatWithAreaDto, seats, {
-        excludeExtraneousValues: true,
-      });
-      console.log(seatInstances);
-
-      const orderResponse = plainToInstance(
-        CreateOrderResponseDto,
-        {
-          ...savedOrder,
-          totalAmount: seats.reduce((sum, seat) => sum + seat.area.price, 0),
-          user: userInstance,
-          event: eventIstance,
-          seats: seatInstances,
-        },
-        {
-          excludeExtraneousValues: true,
-        },
-      );
-
-      await queryRunner.commitTransaction();
-      return new CommonResponse(orderResponse);
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      if (e instanceof QueryFailedError && e.driverError.code === '23505') {
-        const uniqueError = ERROR_CODES.EXISTING_RESERVATION;
-        throw new CustomException(
-          uniqueError.code,
-          uniqueError.message,
-          uniqueError.httpStatus,
-        );
-      }
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async findAllOrders(
+  async findAll(
     findAllOrderRequestDto: FindAllOrderRequestDto,
     userId: string,
   ): Promise<CommonResponse<FindAllOrderResponseDto[]>> {
     const { eventId } = findAllOrderRequestDto;
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      const error = ERROR_CODES.USER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
 
     const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
@@ -192,9 +72,9 @@ export class OrdersService {
       .innerJoinAndSelect('eventDate.event', 'event')
       .innerJoinAndSelect('reservation.seat', 'seat')
       .innerJoinAndSelect('seat.area', 'area')
-      .innerJoinAndSelect('order.payments', 'payment')
+      // .innerJoinAndSelect('order.payments', 'payment')
       .andWhere('order.deletedAt IS NULL')
-      .andWhere("payment.paymentStatus = 'completed'")
+      // .andWhere("payment.paymentStatus = 'completed'")
       .andWhere('user.id = :userId', { userId });
     if (eventId) {
       queryBuilder.andWhere('event.id = :eventId', { eventId });
@@ -207,6 +87,7 @@ export class OrdersService {
       .select([
         'order.id AS orderId',
         'order.createdAt AS orderCreatedAt',
+        'order.canceldAt AS orderCanceledAt',
         'user.id AS userId',
         'user.nickname AS userNickname',
         'user.email AS userEmail',
@@ -240,6 +121,7 @@ export class OrdersService {
         acc[orderId] = {
           orderId,
           orderCreatedAt: order.ordercreatedat,
+          orderCanceldAt: order.orderCanceledAt,
           userId: order.userid,
           userNickname: order.usernickname,
           userEmail: order.useremail,
@@ -284,16 +166,10 @@ export class OrdersService {
     return new CommonResponse(onrderInstances);
   }
 
-  async findOneOrder(
+  async findOne(
     orderId: string,
     userId: string,
   ): Promise<CommonResponse<FindOneOrderResponseDto>> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      const error = ERROR_CODES.USER_NOT_FOUND;
-      throw new CustomException(error.code, error.message, error.httpStatus);
-    }
-
     const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
       .innerJoinAndSelect('order.user', 'user')
@@ -302,10 +178,10 @@ export class OrdersService {
       .innerJoinAndSelect('eventDate.event', 'event')
       .innerJoinAndSelect('reservation.seat', 'seat')
       .innerJoinAndSelect('seat.area', 'area')
-      .innerJoinAndSelect('order.payments', 'payment')
+      // .innerJoinAndSelect('order.payments', 'payment')
       .andWhere('user.id = :userId', { userId })
       .andWhere('order.deletedAt IS NULL')
-      .andWhere("payment.paymentStatus = 'completed'")
+      // .andWhere("payment.paymentStatus = 'completed'")
       .andWhere('order.id = :orderId', { orderId });
 
     console.log(queryBuilder.getQuery());
@@ -314,6 +190,7 @@ export class OrdersService {
       .select([
         'order.id AS orderId',
         'order.createdAt AS orderCreatedAt',
+        'order.canceledAt AS orderCanceledAt',
         'user.id AS userId',
         'user.nickname AS userNickname',
         'user.email AS userEmail',
@@ -347,6 +224,7 @@ export class OrdersService {
     const orderData = {
       orderId,
       orderCreatedAt: selectedOrder.ordercreatedat,
+      orderCanceledAt: selectedOrder.orderCanceledAt,
       userId: selectedOrder.userid,
       userNickname: selectedOrder.usernickname,
       userEmail: selectedOrder.useremail,
@@ -381,4 +259,13 @@ export class OrdersService {
 
     return new CommonResponse(orderInstance);
   }
+
+  // async cancelOne(
+  //   orderId: string,
+  //   userId: string,
+  // ): Promise<CommonResponse<any>> {
+    
+
+  //   return;    
+  // }
 }

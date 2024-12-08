@@ -1,6 +1,7 @@
 import { User } from 'src/users/entities/user.entity';
 import { Reservation } from './reservation.entity';
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
@@ -9,9 +10,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { PaymentMethod } from 'src/common/enum/payment-method';
 import { Payment } from './payment.entity';
 
-/* migration) 일단 not null 유지 */
 @Entity()
 export class Order {
   @PrimaryGeneratedColumn('uuid')
@@ -21,6 +22,14 @@ export class Order {
     onDelete: 'CASCADE',
   })
   user: User;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentMethod,
+    default: 'socket_pay',
+    nullable: true,
+  })
+  paymentMethod: PaymentMethod | null;
 
   @OneToMany(() => Reservation, (reservation) => reservation.order, {
     cascade: true,
@@ -33,6 +42,9 @@ export class Order {
     onDelete: 'CASCADE',
   })
   payments: Payment[];
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  canceledAt: Date;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

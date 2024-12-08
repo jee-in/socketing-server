@@ -14,7 +14,7 @@ import { PaymentMethod } from 'src/common/enum/payment-method';
 import { PaymentStatus } from 'src/common/enum/payment-status';
 
 @Entity()
-@Unique(['orderId', 'paymentMethod'])
+@Unique(['order', 'paymentMethod'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,15 +25,14 @@ export class Payment {
   @JoinColumn({ name: 'orderId' })
   order: Order;
 
-  @Column()
-  orderId: string;
-
-  @Column({ type: 'int', unsigned: true, default: 0 })
+  @Column({ type: 'int', unsigned: true, nullable: true, default: 0 })
   paymentAmount: number;
 
   @Column({
     type: 'enum',
     enum: PaymentMethod,
+    nullable: true,
+    default: null,
   })
   paymentMethod: PaymentMethod;
 
@@ -41,6 +40,7 @@ export class Payment {
     type: 'enum',
     enum: PaymentStatus,
     default: PaymentStatus.PENDING,
+    nullable: true,
   })
   paymentStatus: PaymentStatus;
 
