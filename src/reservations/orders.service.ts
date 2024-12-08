@@ -3,14 +3,11 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CommonResponse } from 'src/common/dto/common-response.dto';
 import { User } from 'src/users/entities/user.entity';
-import { CustomException } from 'src/exceptions/custom-exception';
-import { ERROR_CODES } from 'src/contants/error-codes';
 import { EventDate } from 'src/events/entities/event-date.entity';
 import { Seat } from 'src/events/entities/seat.entity';
 import { plainToInstance } from 'class-transformer';
 import { Reservation } from './entities/reservation.entity';
 import { Order } from './entities/order.entity';
-import { CreateOrderRequestDto } from './dto/create-order-request.dto';
 import { FindAllOrderRequestDto } from './dto/find-all-order-request.dto';
 import { FindAllOrderResponseDto } from './dto/find-all-order-response.dto';
 import { FindOneOrderResponseDto } from './dto/find-one-order-response.dto';
@@ -65,29 +62,27 @@ export class OrdersService {
     const { eventId } = findAllOrderRequestDto;
 
     const queryBuilder = this.orderRepository
-      .createQueryBuilder('order')
-      .innerJoinAndSelect('order.user', 'user')
-      .innerJoinAndSelect('order.reservations', 'reservation')
+      .createQueryBuilder('o')
+      .innerJoinAndSelect('o.user', 'user')
+      .innerJoinAndSelect('o.reservations', 'reservation')
       .innerJoinAndSelect('reservation.eventDate', 'eventDate')
       .innerJoinAndSelect('eventDate.event', 'event')
       .innerJoinAndSelect('reservation.seat', 'seat')
       .innerJoinAndSelect('seat.area', 'area')
-      // .innerJoinAndSelect('order.payments', 'payment')
-      .andWhere('order.deletedAt IS NULL')
-      // .andWhere("payment.paymentStatus = 'completed'")
+      .andWhere('o.deletedAt IS NULL')
       .andWhere('user.id = :userId', { userId });
     if (eventId) {
       queryBuilder.andWhere('event.id = :eventId', { eventId });
     }
-    queryBuilder.orderBy('order.createdAt', 'DESC');
+    queryBuilder.orderBy('o.createdAt', 'DESC');
 
     console.log(queryBuilder.getQuery());
 
     const selectedOrders = await queryBuilder
       .select([
-        'order.id AS orderId',
-        'order.createdAt AS orderCreatedAt',
-        'order.canceldAt AS orderCanceledAt',
+        'o.id AS orderId',
+        'o.createdAt AS orderCreatedAt',
+        'o.canceledAt AS orderCanceledAt',
         'user.id AS userId',
         'user.nickname AS userNickname',
         'user.email AS userEmail',
@@ -121,7 +116,7 @@ export class OrdersService {
         acc[orderId] = {
           orderId,
           orderCreatedAt: order.ordercreatedat,
-          orderCanceldAt: order.orderCanceledAt,
+          orderCanceledAt: order.orderCanceledAt,
           userId: order.userid,
           userNickname: order.usernickname,
           userEmail: order.useremail,
@@ -171,26 +166,24 @@ export class OrdersService {
     userId: string,
   ): Promise<CommonResponse<FindOneOrderResponseDto>> {
     const queryBuilder = this.orderRepository
-      .createQueryBuilder('order')
-      .innerJoinAndSelect('order.user', 'user')
-      .innerJoinAndSelect('order.reservations', 'reservation')
+      .createQueryBuilder('o')
+      .innerJoinAndSelect('o.user', 'user')
+      .innerJoinAndSelect('o.reservations', 'reservation')
       .innerJoinAndSelect('reservation.eventDate', 'eventDate')
       .innerJoinAndSelect('eventDate.event', 'event')
       .innerJoinAndSelect('reservation.seat', 'seat')
       .innerJoinAndSelect('seat.area', 'area')
-      // .innerJoinAndSelect('order.payments', 'payment')
       .andWhere('user.id = :userId', { userId })
-      .andWhere('order.deletedAt IS NULL')
-      // .andWhere("payment.paymentStatus = 'completed'")
-      .andWhere('order.id = :orderId', { orderId });
+      .andWhere('o.deletedAt IS NULL')
+      .andWhere('o.id = :orderId', { orderId });
 
     console.log(queryBuilder.getQuery());
 
     const selectedOrder = await queryBuilder
       .select([
-        'order.id AS orderId',
-        'order.createdAt AS orderCreatedAt',
-        'order.canceledAt AS orderCanceledAt',
+        'o.id AS orderId',
+        'o.createdAt AS orderCreatedAt',
+        'o.canceledAt AS orderCanceledAt',
         'user.id AS userId',
         'user.nickname AS userNickname',
         'user.email AS userEmail',
@@ -264,8 +257,15 @@ export class OrdersService {
   //   orderId: string,
   //   userId: string,
   // ): Promise<CommonResponse<any>> {
-    
+  //   // 유효성 검증
+  //   // 1. order 존재, canceled된 적 없는지
 
-  //   return;    
+  //   // 2. order의 주인이 user가 맞는지
+
+  //   // 쿼리 실행
+
+  //   // 응답 데이터 생성
+
+  //   return;
   // }
 }
