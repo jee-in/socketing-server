@@ -184,6 +184,7 @@ export class OrdersService {
         'event.place AS eventPlace',
         'event.cast AS eventCast',
         'event.ageLimit AS eventAgeLimit',
+        'event.svg AS eventSvg',
         'reservation.id AS reservationId',
         'seat.id AS seatId',
         'seat.cx AS seatCx',
@@ -191,6 +192,7 @@ export class OrdersService {
         'seat.row AS seatRow',
         'seat.number AS seatNumber',
         'area.id AS areaId',
+        'area.svg AS areaSvg',
         'area.label AS areaLabel',
         'area.price AS areaPrice',
       ])
@@ -218,6 +220,7 @@ export class OrdersService {
       eventPlace: commonOrder.eventplace,
       eventCast: commonOrder.eventcast,
       eventAgeLimit: commonOrder.eventagelimit,
+      eventSvg: commonOrder.eventsvg,
     };
 
     const orderResponse = {
@@ -236,6 +239,7 @@ export class OrdersService {
         seatAreaId: order.areaid,
         seatAreaLabel: order.arealabel,
         seatAreaPrice: order.areaprice,
+        seatAreaSvg: order.areasvg,
       });
     });
 
@@ -246,6 +250,7 @@ export class OrdersService {
         excludeExtraneousValues: true,
       },
     );
+    console.log(orderInstance);
 
     return new CommonResponse(orderInstance);
   }

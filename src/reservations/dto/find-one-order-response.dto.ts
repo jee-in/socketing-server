@@ -53,5 +53,8 @@ export class FindOneOrderResponseDto {
   eventAgeLimit: number;
 
   @Expose()
+  eventSvg: string;
+
+  @Expose()
   reservations: PlainReservationDto[];
 }
