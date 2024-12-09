@@ -118,7 +118,7 @@ export class OrdersService {
         acc[orderId] = {
           orderId,
           orderCreatedAt: order.ordercreatedat,
-          orderCanceledAt: order.orderCanceledAt,
+          orderCanceledAt: order.ordercanceledat,
           userId: order.userid,
           userNickname: order.usernickname,
           userEmail: order.useremail,
@@ -219,7 +219,7 @@ export class OrdersService {
     const orderData = {
       orderId,
       orderCreatedAt: selectedOrder.ordercreatedat,
-      orderCanceledAt: selectedOrder.orderCanceledAt,
+      orderCanceledAt: selectedOrder.ordercanceledat,
       userId: selectedOrder.userid,
       userNickname: selectedOrder.usernickname,
       userEmail: selectedOrder.useremail,
