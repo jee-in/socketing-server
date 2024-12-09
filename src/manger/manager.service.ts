@@ -29,16 +29,16 @@ export class ManagersService {
     eventId: string,
     eventDateId: string,
   ): Promise<CommonResponse<any>> {
-    const queryBuilder = await this.eventRepository
+    const queryBuilder = this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'manager')
-      .leftJoinAndSelect('event.areas', 'area')
-      .leftJoinAndSelect('area.seats', 'seat')
       .leftJoinAndSelect(
         'event.eventDates',
         'eventDates',
         'eventDates.deletedAt IS NULL',
       )
+      .leftJoinAndSelect('event.areas', 'area')
+      .leftJoinAndSelect('area.seats', 'seat')
       .leftJoinAndSelect('seat.reservations', 'reservation')
       .leftJoinAndSelect('reservation.order', 'order')
       .leftJoinAndSelect('order.user', 'user')
@@ -53,10 +53,10 @@ export class ManagersService {
         'event.ticketingStartTime',
         'event.createdAt',
         'event.updatedAt',
-        // 'eventDates.id',
-        // 'eventDates.date',
-        // 'eventDates.createdAt',
-        // 'eventDates.updatedAt',
+        'eventDates.id',
+        'eventDates.date',
+        'eventDates.createdAt',
+        'eventDates.updatedAt',
         'manager.id',
         'manager.nickname',
         'manager.email',
@@ -103,8 +103,6 @@ export class ManagersService {
   }
 
   async findAll(userId: any): Promise<CommonResponse<Event[]>> {
-    console.log(userId);
-
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       const error = ERROR_CODES.USER_NOT_FOUND;

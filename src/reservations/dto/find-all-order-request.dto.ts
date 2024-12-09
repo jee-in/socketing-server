@@ -9,4 +9,20 @@ export class FindAllOrderRequestDto {
   @IsOptional()
   @IsString()
   readonly eventId?: string;
+
+  @ApiProperty({
+    description: 'Specifies if the reservation is canceled.',
+    example: 'true',
+  })
+  @IsOptional()
+  @IsString()
+  readonly isCancelled?: string;
+
+  @ApiProperty({
+    description: 'Specifies if the event date is in the past.',
+    example: 'true',
+  })
+  @IsOptional()
+  @IsString()
+  readonly isBeforeNow?: string;
 }

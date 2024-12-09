@@ -45,18 +45,6 @@ export class OrdersService {
     return !!reservedReservation;
   }
 
-  // async createOrder(
-  //   body: CreateOrderRequestDto,
-  //   userId: string,
-  // ): Promise<CommonResponse<any>> {
-  //   console.log('empty service invoked');
-  //   if (body) {
-  //   }
-  //   if (userId) {
-  //   }
-  //   return;
-  // }
-
   async findAll(
     findAllOrderRequestDto: FindAllOrderRequestDto,
     userId: string,
@@ -77,8 +65,6 @@ export class OrdersService {
       queryBuilder.andWhere('event.id = :eventId', { eventId });
     }
     queryBuilder.orderBy('o.createdAt', 'DESC');
-
-    // console.log(queryBuilder.getQuery());
 
     const selectedOrders = await queryBuilder
       .select([
@@ -180,8 +166,6 @@ export class OrdersService {
       .andWhere('o.deletedAt IS NULL')
       .andWhere('o.id = :orderId', { orderId });
 
-    // console.log(queryBuilder.getQuery());
-
     const selectedOrder = await queryBuilder
       .select([
         'o.id AS orderId',
@@ -200,6 +184,7 @@ export class OrdersService {
         'event.place AS eventPlace',
         'event.cast AS eventCast',
         'event.ageLimit AS eventAgeLimit',
+        'reservation.id AS reservationId',
         'seat.id AS seatId',
         'seat.cx AS seatCx',
         'seat.cy AS seatCy',
@@ -209,50 +194,58 @@ export class OrdersService {
         'area.label AS areaLabel',
         'area.price AS areaPrice',
       ])
-      .getRawOne();
-    // console.log(selectedOrder);
+      .getRawMany();
 
     if (!selectedOrder) {
       return new CommonResponse(null);
     }
 
-    // ...selectedOrder
-    const orderData = {
-      orderId,
-      orderCreatedAt: selectedOrder.ordercreatedat,
-      orderCanceledAt: selectedOrder.ordercanceledat,
-      userId: selectedOrder.userid,
-      userNickname: selectedOrder.usernickname,
-      userEmail: selectedOrder.useremail,
-      userProfileImage: selectedOrder.userprofileimage,
-      userRole: selectedOrder.userrole,
-      eventDateId: selectedOrder.eventdateid,
-      eventDate: selectedOrder.eventdatedate,
-      eventId: selectedOrder.eventid,
-      eventTitle: selectedOrder.eventtitle,
-      eventThumbnail: selectedOrder.eventthumbnail,
-      eventPlace: selectedOrder.eventplace,
-      eventCast: selectedOrder.eventcast,
-      eventAgeLimit: selectedOrder.eventagelimit,
-      reservations: [
-        {
-          reservationId: selectedOrder.reservationid,
-          seatId: selectedOrder.seatid,
-          seatCx: selectedOrder.seatcx,
-          seatCy: selectedOrder.seatcy,
-          seatRow: selectedOrder.seatrow,
-          seatNumber: selectedOrder.seatnumber,
-          seatAreaId: selectedOrder.areaid,
-          seatAreaLabel: selectedOrder.arealabel,
-          seatAreaPrice: selectedOrder.areaprice,
-        },
-      ],
+    const commonOrder = selectedOrder[0];
+    const commonOrderData = {
+      orderId: commonOrder.orderid,
+      orderCreatedAt: commonOrder.ordercreatedat,
+      orderCanceledAt: commonOrder.ordercanceledat,
+      userId: commonOrder.userid,
+      userNickname: commonOrder.usernickname,
+      userEmail: commonOrder.useremail,
+      userProfileImage: commonOrder.userprofileimage,
+      userRole: commonOrder.userrole,
+      eventDateId: commonOrder.eventdateid,
+      eventDate: commonOrder.eventdatedate,
+      eventId: commonOrder.eventid,
+      eventTitle: commonOrder.eventtitle,
+      eventThumbnail: commonOrder.eventthumbnail,
+      eventPlace: commonOrder.eventplace,
+      eventCast: commonOrder.eventcast,
+      eventAgeLimit: commonOrder.eventagelimit,
     };
 
-    const orderInstance = plainToInstance(FindOneOrderResponseDto, orderData, {
-      excludeExtraneousValues: true,
+    const orderResponse = {
+      ...commonOrderData,
+      reservations: [],
+    };
+
+    selectedOrder.forEach((order) => {
+      orderResponse.reservations.push({
+        reservationId: order.reservationid,
+        seatId: order.seatid,
+        seatCx: order.seatcx,
+        seatCy: order.seatcy,
+        seatRow: order.seatrow,
+        seatNumber: order.seatnumber,
+        seatAreaId: order.areaid,
+        seatAreaLabel: order.arealabel,
+        seatAreaPrice: order.areaprice,
+      });
     });
-    //console.log(orderInstance);
+
+    const orderInstance = plainToInstance(
+      FindOneOrderResponseDto,
+      orderResponse,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
 
     return new CommonResponse(orderInstance);
   }
@@ -263,11 +256,12 @@ export class OrdersService {
   ): Promise<CommonResponse<any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
-    console.log('cancelOne');
     try {
       const order = await queryRunner.manager
-        .createQueryBuilder('order', 'o')
-        .select()
+        .createQueryBuilder(Order, 'o')
+        .leftJoinAndSelect('o.reservations', 'reservation')
+        .leftJoinAndSelect('reservation.seat', 'seat')
+        .leftJoinAndSelect('seat.area', 'area')
         .andWhere('o.id = :orderId', { orderId })
         .andWhere('o.userId = :userId', { userId })
         .getOne();
@@ -276,7 +270,6 @@ export class OrdersService {
         const error = ERROR_CODES.ORDER_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
-      console.log(order);
 
       if (order.canceledAt != null) {
         const error = ERROR_CODES.ALREADY_CANCELED_ORDER;
@@ -284,17 +277,39 @@ export class OrdersService {
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
 
+      // 유저 포인트 반환을 위해 주문 금액 계산
+      const refundingAmount = order.reservations.reduce((sum, reservation) => {
+        return sum + reservation.seat.area.price;
+      }, 0);
+
       const result = await queryRunner.manager
         .createQueryBuilder()
-        .update('order')
+        .update(Order)
         .set({ canceledAt: new Date() })
-        .where('id = :orderId', { orderId: order.id })
+        .where('id = :orderId', { orderId })
         .execute();
 
       if (result.affected && result.affected > 0) {
-        console.log('Update successful!');
+        console.log('Order Update successful!');
       } else {
-        console.log('No rows were updated.');
+        console.log('No Order rows were updated.');
+      }
+
+      // 유저 포인트 반환
+      const updateUserResult = await queryRunner.manager
+        .createQueryBuilder()
+        .update('user')
+        .set({
+          point: () => 'point + :refundingAmount',
+        })
+        .where('id = :userId', { userId })
+        .setParameter('refundingAmount', refundingAmount)
+        .execute();
+
+      if (updateUserResult.affected && updateUserResult.affected > 0) {
+        console.log('User Update successful!');
+      } else {
+        console.log('No User rows were updated.');
       }
 
       await queryRunner.commitTransaction();
