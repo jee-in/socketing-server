@@ -268,7 +268,7 @@ export class OrdersService {
       const order = await queryRunner.manager
         .createQueryBuilder('order', 'o')
         .select()
-        .andWhere('o.orderId = :orderId', {orderId})
+        .andWhere('o.id = :orderId', { orderId })
         .andWhere('o.userId = :userId', { userId })
         .getOne();
 
