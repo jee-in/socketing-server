@@ -78,7 +78,7 @@ export class OrdersService {
     }
     queryBuilder.orderBy('o.createdAt', 'DESC');
 
-    console.log(queryBuilder.getQuery());
+    // console.log(queryBuilder.getQuery());
 
     const selectedOrders = await queryBuilder
       .select([
@@ -108,7 +108,7 @@ export class OrdersService {
         'area.price AS areaPrice',
       ])
       .getRawMany();
-    console.log(selectedOrders);
+    // console.log(selectedOrders);
 
     const groupedOrders = selectedOrders.reduce((acc, order) => {
       const orderId = order.orderid;
@@ -154,13 +154,14 @@ export class OrdersService {
 
     // Object.values를 사용해 배열로 변환
     const groupedOrdersArray = Object.values(groupedOrders);
-    const onrderInstances = plainToInstance(
+    const orderInstances = plainToInstance(
       FindAllOrderResponseDto,
       groupedOrdersArray,
       { excludeExtraneousValues: true },
     );
 
-    return new CommonResponse(onrderInstances);
+    //console.log(orderInstances);
+    return new CommonResponse(orderInstances);
   }
 
   async findOne(
@@ -179,7 +180,7 @@ export class OrdersService {
       .andWhere('o.deletedAt IS NULL')
       .andWhere('o.id = :orderId', { orderId });
 
-    console.log(queryBuilder.getQuery());
+    // console.log(queryBuilder.getQuery());
 
     const selectedOrder = await queryBuilder
       .select([
@@ -209,8 +210,8 @@ export class OrdersService {
         'area.price AS areaPrice',
       ])
       .getRawOne();
+    // console.log(selectedOrder);
 
-    console.log(selectedOrder);
     if (!selectedOrder) {
       return new CommonResponse(null);
     }
@@ -251,6 +252,7 @@ export class OrdersService {
     const orderInstance = plainToInstance(FindOneOrderResponseDto, orderData, {
       excludeExtraneousValues: true,
     });
+    //console.log(orderInstance);
 
     return new CommonResponse(orderInstance);
   }
@@ -261,15 +263,12 @@ export class OrdersService {
   ): Promise<CommonResponse<any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
-
-    // 쿼리 실행
-
-    // 응답 데이터 생성
-
+    console.log('cancelOne');
     try {
       const order = await queryRunner.manager
         .createQueryBuilder('order', 'o')
         .select()
+        .andWhere('o.orderId = :orderId', {orderId})
         .andWhere('o.userId = :userId', { userId })
         .getOne();
 
@@ -277,8 +276,9 @@ export class OrdersService {
         const error = ERROR_CODES.ORDER_NOT_FOUND;
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
+      console.log(order);
 
-      if (order.canceledAt) {
+      if (order.canceledAt != null) {
         const error = ERROR_CODES.ALREADY_CANCELED_ORDER;
         console.log(`This order is canceled at ${order.canceledAt}`);
         throw new CustomException(error.code, error.message, error.httpStatus);

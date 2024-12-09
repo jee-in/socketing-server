@@ -11,6 +11,9 @@ export class FindOneOrderResponseDto {
   orderCreatedAt: Date;
 
   @Expose()
+  orderCanceledAt: Date;
+
+  @Expose()
   userId: string;
 
   @Expose()
