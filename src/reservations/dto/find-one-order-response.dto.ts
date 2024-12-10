@@ -29,7 +29,7 @@ export class FindOneOrderResponseDto {
   userRole: string;
 
   @Expose()
-  event: string;
+  eventId: string;
 
   @Expose()
   eventDateId: string;
