@@ -38,7 +38,7 @@ export class PlainReservationDto {
   @IsNumber()
   seatAreaPrice: number;
 
-  @Expose()
-  @IsString()
-  seatAreaSvg: string;
+  // @Expose()
+  // @IsString()
+  // seatAreaSvg: string;
 }

@@ -410,7 +410,7 @@ export class EventsService {
         'area.id',
         'area.label',
         'area.price',
-        // 'area.svg',
+        'area.svg',
       ])
       .getMany();
 
@@ -437,6 +437,7 @@ export class EventsService {
         'area.id',
         'area.label',
         'area.price',
+        'area.svg',
         'event.id',
         'event.title',
         'event.thumbnail',

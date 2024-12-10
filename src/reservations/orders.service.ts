@@ -192,7 +192,7 @@ export class OrdersService {
         'seat.row AS seatRow',
         'seat.number AS seatNumber',
         'area.id AS areaId',
-        'area.svg AS areaSvg',
+        // 'area.svg AS areaSvg',
         'area.label AS areaLabel',
         'area.price AS areaPrice',
       ])
@@ -239,7 +239,7 @@ export class OrdersService {
         seatAreaId: order.areaid,
         seatAreaLabel: order.arealabel,
         seatAreaPrice: order.areaprice,
-        seatAreaSvg: order.areasvg,
+        // seatAreaSvg: order.areasvg,
       });
     });
 
