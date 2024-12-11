@@ -39,8 +39,8 @@ export class ManagersService {
       )
       .leftJoinAndSelect('event.areas', 'area')
       .leftJoinAndSelect('area.seats', 'seat')
-      .leftJoinAndSelect('seat.reservations', 'reservation')
-      .leftJoinAndSelect('reservation.order', 'order')
+      .leftJoinAndSelect('seat.reservations', 'reservation', 'reservation.canceledAt IS NULL')
+      .leftJoinAndSelect('reservation.order', 'order', 'order.canceledAt IS NULL')
       .leftJoinAndSelect('order.user', 'user')
       .select([
         'event.id',
@@ -72,7 +72,9 @@ export class ManagersService {
         'seat.row',
         'seat.number',
         'reservation.id',
+        'reservation.canceledAt',
         'order.id',
+        'order.canceledAt',
         'order.createdAt',
         'order.updatedAt',
         'order.deletedAt',
@@ -122,6 +124,8 @@ export class ManagersService {
         'eventDates',
         'eventDates.deletedAt IS NULL',
       )
+      .andWhere('user.id = :userId', { userId })
+      .orderBy('event.createdAt', 'DESC')
       .select([
         'event.id',
         'event.title',
@@ -142,7 +146,6 @@ export class ManagersService {
         'user.profileImage',
         'user.role',
       ])
-      .andWhere('event.user = :userId', { userId })
       .getMany();
 
     return new CommonResponse(events);

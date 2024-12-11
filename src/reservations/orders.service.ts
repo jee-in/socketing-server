@@ -94,7 +94,6 @@ export class OrdersService {
         'area.price AS areaPrice',
       ])
       .getRawMany();
-    // console.log(selectedOrders);
 
     const groupedOrders = selectedOrders.reduce((acc, order) => {
       const orderId = order.orderid;
@@ -146,7 +145,6 @@ export class OrdersService {
       { excludeExtraneousValues: true },
     );
 
-    //console.log(orderInstances);
     return new CommonResponse(orderInstances);
   }
 
@@ -250,7 +248,6 @@ export class OrdersService {
         excludeExtraneousValues: true,
       },
     );
-    console.log(orderInstance);
 
     return new CommonResponse(orderInstance);
   }
@@ -278,7 +275,6 @@ export class OrdersService {
 
       if (order.canceledAt != null) {
         const error = ERROR_CODES.ALREADY_CANCELED_ORDER;
-        console.log(`This order is canceled at ${order.canceledAt}`);
         throw new CustomException(error.code, error.message, error.httpStatus);
       }
 
@@ -287,17 +283,24 @@ export class OrdersService {
         return sum + reservation.seat.area.price;
       }, 0);
 
-      const result = await queryRunner.manager
+      const orderResult = await queryRunner.manager
         .createQueryBuilder()
         .update(Order)
         .set({ canceledAt: new Date() })
         .where('id = :orderId', { orderId })
         .execute();
 
-      if (result.affected && result.affected > 0) {
-        console.log('Order Update successful!');
-      } else {
-        console.log('No Order rows were updated.');
+      const reservations = order.reservations;
+
+      for (const r of reservations) {
+        const reservationId = r.id;
+
+        const reservationResult = await queryRunner.manager
+          .createQueryBuilder()
+          .update(Reservation)
+          .set({ canceledAt: new Date() })
+          .where('id = :reservationId', { reservationId })
+          .execute();
       }
 
       // 유저 포인트 반환
@@ -310,12 +313,6 @@ export class OrdersService {
         .where('id = :userId', { userId })
         .setParameter('refundingAmount', refundingAmount)
         .execute();
-
-      if (updateUserResult.affected && updateUserResult.affected > 0) {
-        console.log('User Update successful!');
-      } else {
-        console.log('No User rows were updated.');
-      }
 
       await queryRunner.commitTransaction();
       return new CommonResponse({});

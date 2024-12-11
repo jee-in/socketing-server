@@ -132,7 +132,6 @@ export class ManagersController {
     @Query('eventDateId') eventDateId: string,
     @Req() req: any,
   ): Promise<CommonResponse<any>> {
-    console.log(req.user);
     const { userId } = req.user;
     return this.managerService.findOneEventWithSeatStatus(
       userId,
@@ -233,7 +232,6 @@ export class ManagersController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   findAll(@Req() req: any): Promise<CommonResponse<any>> {
-    console.log(req.user);
     const { userId } = req.user;
     return this.managerService.findAll(userId);
   }

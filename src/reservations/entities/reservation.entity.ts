@@ -2,18 +2,21 @@ import { EventDate } from 'src/events/entities/event-date.entity';
 import { Seat } from 'src/events/entities/seat.entity';
 
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Order } from './order.entity';
 
 @Entity()
-@Unique(['seat', 'eventDate'])
+@Index('unique_eventdate_seat_canceledat_null', ['seat', 'eventDate'], {
+  where: '"canceledAt" IS NULL',
+})
 export class Reservation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -35,6 +38,9 @@ export class Reservation {
     nullable: false,
   })
   eventDate: EventDate;
+
+  @Column({ type: 'timestamp', default: null, nullable: true })
+  canceledAt: Date;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
