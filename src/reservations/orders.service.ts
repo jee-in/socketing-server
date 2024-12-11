@@ -283,7 +283,7 @@ export class OrdersService {
         return sum + reservation.seat.area.price;
       }, 0);
 
-      const orderResult = await queryRunner.manager
+      await queryRunner.manager
         .createQueryBuilder()
         .update(Order)
         .set({ canceledAt: new Date() })
@@ -295,7 +295,7 @@ export class OrdersService {
       for (const r of reservations) {
         const reservationId = r.id;
 
-        const reservationResult = await queryRunner.manager
+        await queryRunner.manager
           .createQueryBuilder()
           .update(Reservation)
           .set({ canceledAt: new Date() })
@@ -304,7 +304,7 @@ export class OrdersService {
       }
 
       // 유저 포인트 반환
-      const updateUserResult = await queryRunner.manager
+      await queryRunner.manager
         .createQueryBuilder()
         .update('user')
         .set({
