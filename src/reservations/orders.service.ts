@@ -196,7 +196,7 @@ export class OrdersService {
       ])
       .getRawMany();
 
-    if (!selectedOrder) {
+    if (selectedOrder.length == 0) {
       return new CommonResponse(null);
     }
 
